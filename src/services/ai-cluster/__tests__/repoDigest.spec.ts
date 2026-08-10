@@ -4,7 +4,15 @@ import path from "path"
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 
-import { digestRepository, digestToBlocks, digestToBrief, headerComment } from "../repoDigest"
+import {
+	dependencyDiagram,
+	digestRepository,
+	digestToBlocks,
+	digestToBrief,
+	headerComment,
+	importEdges,
+	moduleName,
+} from "../repoDigest"
 
 /**
  * The digest is the whole reason document_project produces a document rather
@@ -123,16 +131,92 @@ describe("digestToBrief", () => {
 	})
 })
 
-describe("digestToBlocks", () => {
-	it("hands over the inventory and a chart of it, as facts to typeset", async () => {
-		const blocks = digestToBlocks(await digestRepository(root))
-		const types = blocks.map((b) => b.type)
-		expect(types).toContain("chart")
-		expect(types).toContain("table")
+describe("imports", () => {
+	it("finds what a Python package imports from itself", () => {
+		// `from . import build, charts` names its siblings in the import list,
+		// which is how most packages import themselves.
+		const files = ["pkg/agent.py", "pkg/build.py", "pkg/charts.py", "pkg/spec.py"].map((p) => ({
+			path: p,
+			lines: 1,
+			purpose: "",
+			defines: [],
+		}))
+		const texts = new Map([
+			["pkg/agent.py", "from . import build, charts\nfrom .spec import prepare\n"],
+			["pkg/charts.py", "from . import spec\n"],
+		])
+		const edges = importEdges(files, texts)
+		expect(edges).toEqual(
+			expect.arrayContaining([
+				{ from: "pkg/agent", to: "pkg/build" },
+				{ from: "pkg/agent", to: "pkg/charts" },
+				{ from: "pkg/agent", to: "pkg/spec" },
+				{ from: "pkg/charts", to: "pkg/spec" },
+			]),
+		)
+	})
 
-		const chart = blocks.find((b) => b.type === "chart") as { values: number[]; labels: string[] }
-		expect(chart.values.every((v) => typeof v === "number")).toBe(true)
-		expect(chart.labels).not.toContain(".")
+	it("resolves a relative TypeScript import to the file it names", () => {
+		const files = ["src/tool.ts", "src/services/client.ts"].map((p) => ({
+			path: p,
+			lines: 1,
+			purpose: "",
+			defines: [],
+		}))
+		const texts = new Map([["src/tool.ts", 'import { build } from "../services/client"' + String.fromCharCode(10)]])
+		expect(importEdges(files, texts)).toEqual([{ from: "src/tool", to: "src/services/client" }])
+	})
+
+	it("leaves third-party packages out", () => {
+		const files = [{ path: "a.py", lines: 1, purpose: "", defines: [] }]
+		const texts = new Map([["a.py", "import os\nimport requests\nfrom django.db import models\n"]])
+		expect(importEdges(files, texts)).toEqual([])
+	})
+
+	it("knows what a file is called inside its own project", () => {
+		expect(moduleName("pkg/__init__.py")).toBe("pkg")
+		expect(moduleName("src/services/index.ts")).toBe("src/services")
+		expect(moduleName("a/b.py")).toBe("a/b")
+	})
+})
+
+describe("dependencyDiagram", () => {
+	it("draws the modules with the most connections", async () => {
+		const digest = await digestRepository(root)
+		const diagram = dependencyDiagram({
+			...digest,
+			imports: [
+				{ from: "a", to: "b" },
+				{ from: "a", to: "c" },
+				{ from: "b", to: "c" },
+			],
+		}) as { diagram: string; nodes: Array<{ id: string }>; edges: unknown[] }
+		expect(diagram.diagram).toBe("graph")
+		expect(diagram.nodes.map((n) => n.id).sort()).toEqual(["a", "b", "c"])
+		expect(diagram.edges).toHaveLength(3)
+	})
+
+	it("says nothing rather than drawing a graph of one arrow", async () => {
+		const digest = await digestRepository(root)
+		expect(dependencyDiagram({ ...digest, imports: [{ from: "a", to: "b" }] })).toBeNull()
+	})
+})
+
+describe("digestToBlocks", () => {
+	it("hands over the inventory and a diagram of the modules, as facts to typeset", async () => {
+		const digest = await digestRepository(root)
+		const blocks = digestToBlocks({
+			...digest,
+			imports: [
+				{ from: "src/server", to: "src/client" },
+				{ from: "src/client", to: "src/util" },
+			],
+		})
+		const types = blocks.map((b) => b.type)
+		// A code document needs a module map, not a bar chart of line counts.
+		expect(types).toContain("diagram")
+		expect(types).not.toContain("chart")
+		expect(types).toContain("table")
 
 		const table = blocks.find((b) => b.type === "table") as { header: string[]; rows: string[][] }
 		expect(table.header).toEqual(["File", "Lines", "Purpose"])
