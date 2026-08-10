@@ -5,6 +5,7 @@ import matter from "gray-matter"
 
 import type { ClineProvider } from "../../core/webview/ClineProvider"
 import { getGlobalRooDirectory, getGlobalAgentsDirectory, getProjectAgentsDirectoryForCwd } from "../roo-config"
+import { getClusterSkillsDirectory } from "../ai-cluster/skillsSync"
 import { directoryExists, fileExists } from "../roo-config"
 import { SkillMetadata, SkillContent } from "../../shared/skills"
 import { modes, getAllModes } from "../../shared/modes"
@@ -589,6 +590,11 @@ Add your skill instructions here.
 		// Processing order (later directories override earlier ones at the same source level):
 		// - Global: .agents/skills first, then .roo/skills (so .roo wins)
 		// - Project: .agents/skills first, then .roo/skills (so .roo wins)
+
+		// Skills mirrored from an AI Cluster. Lowest priority of all: they are a
+		// copy of what a server has installed, so anything the user wrote — global
+		// or project — must win over them on a name collision.
+		dirs.push({ dir: getClusterSkillsDirectory(), source: "global" })
 
 		// Global .agents directories (lowest priority - shared across agents)
 		dirs.push({ dir: path.join(globalAgentsDir, "skills"), source: "global" })

@@ -324,6 +324,7 @@ export const SECRET_STATE_KEYS = [
 	"vercelAiGatewayApiKey",
 	"opencodeGoApiKey",
 	"kenariApiKey",
+	"aiClusterApiKey",
 	"basetenApiKey",
 ] as const
 

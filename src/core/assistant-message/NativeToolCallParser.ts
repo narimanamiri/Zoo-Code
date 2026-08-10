@@ -510,6 +510,17 @@ export class NativeToolCallParser {
 				}
 				break
 
+			case "document_project":
+				if (partialArgs.path !== undefined) {
+					nativeArgs = {
+						path: partialArgs.path,
+						source: partialArgs.source,
+						title: partialArgs.title,
+						author: partialArgs.author,
+					}
+				}
+				break
+
 			case "run_slash_command":
 				if (partialArgs.command !== undefined) {
 					nativeArgs = {
@@ -848,6 +859,17 @@ export class NativeToolCallParser {
 							prompt: args.prompt,
 							path: args.path,
 							image: args.image,
+						} as NativeArgsFor<TName>
+					}
+					break
+
+				case "document_project":
+					if (args.path !== undefined) {
+						nativeArgs = {
+							path: args.path,
+							source: args.source,
+							title: args.title,
+							author: args.author,
 						} as NativeArgsFor<TName>
 					}
 					break

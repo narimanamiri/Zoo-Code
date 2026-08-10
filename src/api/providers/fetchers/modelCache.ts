@@ -21,6 +21,7 @@ import { getOpenRouterModels } from "./openrouter"
 import { getVercelAiGatewayModels } from "./vercel-ai-gateway"
 import { getOpencodeGoModels } from "./opencode-go"
 import { getKenariModels } from "./kenari"
+import { getAiClusterModels } from "./ai-cluster"
 import { getRequestyModels } from "./requesty"
 import { getUnboundModels } from "./unbound"
 import { getLiteLLMModels } from "./litellm"
@@ -79,6 +80,10 @@ const URL_SCOPED_PROVIDERS: ReadonlySet<RouterName> = new Set([
 	providerIdentifiers.lmstudio,
 	providerIdentifiers.requesty,
 	providerIdentifiers.zooGateway,
+	// A self-hosted cluster IS its URL: two of them serve different models under
+	// the same provider name, and one cache entry for both would show the wrong
+	// list after a switch.
+	providerIdentifiers.aiCluster,
 ])
 
 // Providers where the API key itself determines which models are visible (e.g. per-key
@@ -95,6 +100,7 @@ const KEY_SCOPED_PROVIDERS: ReadonlySet<RouterName> = new Set([
 	providerIdentifiers.moonshot, // Per-key model visibility (api.moonshot.ai vs api.moonshot.cn)
 	providerIdentifiers.zooGateway, // Per-session-token account identity
 	providerIdentifiers.kimiCode, // Per-session-token account identity
+	providerIdentifiers.aiCluster, // PINNED_MODEL hides everything else unless the key is an admin one
 ])
 
 // Providers whose model lists are scoped to the signed-in user (e.g. per-account
@@ -252,6 +258,9 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 			break
 		case providerIdentifiers.kenari:
 			models = await getKenariModels(options.apiKey)
+			break
+		case providerIdentifiers.aiCluster:
+			models = await getAiClusterModels(options.baseUrl, options.apiKey)
 			break
 		case providerIdentifiers.poe:
 			models = await getPoeModels(options.apiKey, options.baseUrl)

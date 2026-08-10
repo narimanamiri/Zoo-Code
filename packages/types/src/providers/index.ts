@@ -1,3 +1,4 @@
+export * from "./ai-cluster.js"
 export * from "./anthropic.js"
 export * from "./baseten.js"
 export * from "./bedrock.js"
@@ -54,6 +55,7 @@ import { xaiDefaultModelId } from "./xai.js"
 import { vercelAiGatewayDefaultModelId } from "./vercel-ai-gateway.js"
 import { opencodeGoDefaultModelId } from "./opencode-go.js"
 import { kenariDefaultModelId } from "./kenari.js"
+import { aiClusterDefaultModelId } from "./ai-cluster.js"
 import { kimiCodeDefaultModelId } from "./kimi-code.js"
 import { internationalZAiDefaultModelId, mainlandZAiDefaultModelId } from "./zai.js"
 import { minimaxDefaultModelId } from "./minimax.js"
@@ -133,6 +135,8 @@ export function getProviderDefaultModelId(
 			return opencodeGoDefaultModelId
 		case providerIdentifiers.kenari:
 			return kenariDefaultModelId
+		case providerIdentifiers.aiCluster:
+			return aiClusterDefaultModelId
 		case providerIdentifiers.kimiCode:
 			return kimiCodeDefaultModelId
 		case providerIdentifiers.zooGateway:

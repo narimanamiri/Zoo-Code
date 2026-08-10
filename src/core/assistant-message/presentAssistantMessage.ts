@@ -34,6 +34,7 @@ import { updateTodoListTool } from "../tools/UpdateTodoListTool"
 import { runSlashCommandTool } from "../tools/RunSlashCommandTool"
 import { skillTool } from "../tools/SkillTool"
 import { generateImageTool } from "../tools/GenerateImageTool"
+import { documentProjectTool } from "../tools/DocumentProjectTool"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../tools/validateToolUse"
 import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
@@ -405,6 +406,8 @@ export async function presentAssistantMessage(cline: Task) {
 						return `[${block.name} for '${block.params.skill}'${block.params.args ? ` with args: ${block.params.args}` : ""}]`
 					case "generate_image":
 						return `[${block.name} for '${block.params.path}']`
+					case "document_project":
+						return `[${block.name} -> '${block.params.path}']`
 					default:
 						return `[${block.name}]`
 				}
@@ -873,6 +876,14 @@ export async function presentAssistantMessage(cline: Task) {
 				case "generate_image":
 					await checkpointSaveAndMark(cline)
 					await generateImageTool.handle(cline, block as ToolUse<"generate_image">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
+				case "document_project":
+					await checkpointSaveAndMark(cline)
+					await documentProjectTool.handle(cline, block as ToolUse<"document_project">, {
 						askApproval,
 						handleError,
 						pushToolResult,

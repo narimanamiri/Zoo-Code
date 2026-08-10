@@ -5,6 +5,7 @@ import applyPatch from "./apply_patch"
 import askFollowupQuestion from "./ask_followup_question"
 import attemptCompletion from "./attempt_completion"
 import codebaseSearch from "./codebase_search"
+import documentProject from "./document_project"
 import editTool from "./edit"
 import executeCommand from "./execute_command"
 import generateImage from "./generate_image"
@@ -53,6 +54,7 @@ export function getNativeTools(options: NativeToolsOptions = {}): OpenAI.Chat.Ch
 		askFollowupQuestion,
 		attemptCompletion,
 		codebaseSearch,
+		documentProject,
 		executeCommand,
 		generateImage,
 		listFiles,

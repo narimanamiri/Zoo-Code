@@ -56,6 +56,8 @@ function getModelIdForProvider(config: ProviderSettings): string | undefined {
 			return config.opencodeGoModelId
 		case providerIdentifiers.kenari:
 			return config.kenariModelId
+		case providerIdentifiers.aiCluster:
+			return config.aiClusterModelId
 		case providerIdentifiers.zooGateway:
 			return config.zooGatewayModelId
 		case providerIdentifiers.anthropic:

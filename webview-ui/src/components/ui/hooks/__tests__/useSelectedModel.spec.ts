@@ -813,6 +813,7 @@ describe("useSelectedModel", () => {
 					requesty: {},
 					litellm: {},
 					kenari: {},
+					"ai-cluster": {},
 				},
 				isLoading: false,
 				isError: false,

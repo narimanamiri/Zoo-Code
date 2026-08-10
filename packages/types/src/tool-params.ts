@@ -114,3 +114,13 @@ export interface GenerateImageParams {
 	path: string
 	image?: string
 }
+
+export interface DocumentProjectParams {
+	/** Where to save the document, relative to the workspace. The extension
+	 * takes the format from the extension: .docx, .pdf or .pptx. */
+	path: string
+	/** Directory to read, relative to the workspace. Defaults to all of it. */
+	source?: string | null
+	title?: string | null
+	author?: string | null
+}

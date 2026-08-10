@@ -148,6 +148,13 @@ function validateModelsAndKeysProvided(
 				return i18next.t("settings:validation.apiKey")
 			}
 			break
+		case providerIdentifiers.aiCluster:
+			// The key is optional — most deployments are open on a private LAN — but
+			// there is no default host, so without a base URL there is nothing to call.
+			if (!apiConfiguration.aiClusterBaseUrl) {
+				return i18next.t("settings:validation.baseUrl")
+			}
+			break
 		case providerIdentifiers.zooGateway:
 			if (!apiConfiguration.zooSessionToken && !zooCodeIsAuthenticated) {
 				return i18next.t("settings:validation.zooGatewaySignIn")

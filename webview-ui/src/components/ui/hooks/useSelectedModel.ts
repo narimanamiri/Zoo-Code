@@ -31,6 +31,7 @@ import {
 	lMStudioDefaultModelInfo,
 	opencodeGoDefaultModelInfo,
 	kenariDefaultModelInfo,
+	aiClusterDefaultModelInfo,
 	BEDROCK_1M_CONTEXT_MODEL_IDS,
 	VERTEX_1M_CONTEXT_MODEL_IDS,
 	isDynamicProvider,
@@ -407,6 +408,17 @@ function getSelectedModel({
 			// Fall back to the provider's default ModelInfo so capability-driven UI
 			// keeps working when the /models list is empty or unavailable.
 			const info = routerModels["kenari"]?.[id] ?? kenariDefaultModelInfo
+			return { id, info }
+		}
+		case providerIdentifiers.aiCluster: {
+			const id = getValidatedModelId(
+				apiConfiguration.aiClusterModelId,
+				routerModels["ai-cluster"],
+				defaultModelId,
+			)
+			// A cluster that is switched off returns no models; the defaults keep the
+			// capability-driven UI sane until it answers again.
+			const info = routerModels["ai-cluster"]?.[id] ?? aiClusterDefaultModelInfo
 			return { id, info }
 		}
 		case providerIdentifiers.zooGateway: {

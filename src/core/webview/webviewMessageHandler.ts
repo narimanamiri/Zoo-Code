@@ -3,6 +3,7 @@ import * as path from "path"
 import * as os from "os"
 import * as fs from "fs/promises"
 import { getRooDirectoriesForCwd } from "../../services/roo-config/index.js"
+import { applyClusterIntegration } from "../../services/ai-cluster"
 import pWaitFor from "p-wait-for"
 import * as vscode from "vscode"
 
@@ -1050,6 +1051,32 @@ export const webviewMessageHandler = async (
 			// For providers that need credentials, use their specific handlers
 			await flushModels({ provider: routerNameFlush } as GetModelsOptions, true)
 			break
+		case "syncAiClusterSkills": {
+			// The button in the AI Cluster settings. Reports rather than logs: the
+			// user pressed it because they changed something on the node and want
+			// to know whether this machine saw it.
+			const outcome = await applyClusterIntegration(provider, { force: true })
+			const skills = outcome.skills
+			const message = outcome.skillsError
+				? `AI Cluster skill sync failed: ${outcome.skillsError}`
+				: skills
+					? `AI Cluster skills: ${skills.added.length} added, ${skills.updated.length} updated, ` +
+						`${skills.unchanged.length} unchanged, ${skills.removed.length} removed` +
+						(skills.failed.length ? `, ${skills.failed.length} failed` : "")
+					: "AI Cluster skill sync is off for this profile."
+
+			if (outcome.skillsError) {
+				vscode.window.showErrorMessage(message)
+			} else {
+				vscode.window.showInformationMessage(message)
+			}
+
+			await provider.postMessageToWebview({
+				type: "skills",
+				skills: provider.getSkillsManager()?.getSkillsMetadata() ?? [],
+			})
+			break
+		}
 		case "requestRouterModels": {
 			const { apiConfiguration } = await provider.getState()
 
@@ -1077,6 +1104,7 @@ export const webviewMessageHandler = async (
 						"opencode-go": {},
 						kenari: {},
 						"kimi-code": {},
+						"ai-cluster": {},
 					}
 
 			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
@@ -1137,6 +1165,26 @@ export const webviewMessageHandler = async (
 				candidates.push({
 					key: "litellm",
 					options: { provider: "litellm", apiKey: litellmApiKey, baseUrl: litellmBaseUrl },
+				})
+			}
+
+			// The AI Cluster is conditional on a base URL: it is self-hosted, there is
+			// no default host, and asking an empty URL for models is a guaranteed
+			// failed request on every settings render.
+			const aiClusterBaseUrl = message?.values?.aiClusterBaseUrl ?? apiConfiguration.aiClusterBaseUrl
+			const aiClusterApiKey = message?.values?.aiClusterApiKey ?? apiConfiguration.aiClusterApiKey
+
+			if (aiClusterBaseUrl) {
+				if (message?.values?.aiClusterBaseUrl || message?.values?.aiClusterApiKey) {
+					await flushModels(
+						{ provider: "ai-cluster", apiKey: aiClusterApiKey, baseUrl: aiClusterBaseUrl },
+						true,
+					)
+				}
+
+				candidates.push({
+					key: "ai-cluster",
+					options: { provider: "ai-cluster", apiKey: aiClusterApiKey, baseUrl: aiClusterBaseUrl },
 				})
 			}
 

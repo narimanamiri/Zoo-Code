@@ -1028,6 +1028,40 @@ export const ChatRowContent = ({
 						)}
 					</>
 				)
+			case "documentProject":
+				return (
+					<>
+						<div style={headerStyle}>
+							{tool.isProtected ? (
+								<span
+									className="codicon codicon-lock"
+									style={{ color: "var(--vscode-editorWarning-foreground)", marginBottom: "-1.5px" }}
+								/>
+							) : (
+								toolIcon("book")
+							)}
+							<span style={{ fontWeight: "bold" }}>
+								{message.type === "ask"
+									? tool.isProtected
+										? t("chat:fileOperations.wantsToDocumentProjectProtected")
+										: tool.isOutsideWorkspace
+											? t("chat:fileOperations.wantsToDocumentProjectOutsideWorkspace")
+											: t("chat:fileOperations.wantsToDocumentProject")
+									: t("chat:fileOperations.didDocumentProject")}
+							</span>
+						</div>
+						<div className="pl-6">
+							<ToolUseBlock>
+								<div className="p-2">
+									<div className="mb-2 break-words">{tool.content}</div>
+									<div className="flex items-center gap-1 text-xs text-vscode-descriptionForeground">
+										{tool.path}
+									</div>
+								</div>
+							</ToolUseBlock>
+						</div>
+					</>
+				)
 			default:
 				return null
 		}
