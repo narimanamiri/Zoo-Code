@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import axios from "axios"
 
 import { deliveryNote, documentLinks, saveDocuments } from "../documentDelivery"
+import { buildClusterDocument } from "../client"
 
 vi.mock("axios")
 
@@ -105,5 +106,55 @@ describe("deliveryNote", () => {
 		expect(deliveryNote([], [{ url: "http://c/v1/files/a/b.docx", error: "timeout" }])).toContain(
 			"the link still works",
 		)
+	})
+})
+
+describe("buildClusterDocument", () => {
+	beforeEach(() => {
+		vi.mocked(axios.post).mockReset()
+	})
+
+	it("returns the bytes the cluster built", async () => {
+		vi.mocked(axios.post).mockResolvedValue({ status: 200, data: Buffer.from("PK docx"), headers: {} })
+		const buffer = await buildClusterDocument({ baseUrl: "http://c:18080/v1" }, { format: "docx", brief: "x" })
+		expect(buffer.toString()).toBe("PK docx")
+		expect(vi.mocked(axios.post).mock.calls[0][0]).toBe("http://c:18080/v1/documents/docx?download=1")
+	})
+
+	it("reads a refusal out of the header, because the body is a document", async () => {
+		// With ?download=1 the cluster answers a refusal with a rendered
+		// explanation. A program cannot read a .docx to find out what to fix, so
+		// the same reason is repeated in a header.
+		vi.mocked(axios.post).mockResolvedValue({
+			status: 400,
+			data: Buffer.from("PK a document explaining itself"),
+			headers: { "x-document-refused": "This brief is 39 characters restating the request." },
+		})
+		await expect(
+			buildClusterDocument({ baseUrl: "http://c:18080/v1" }, { format: "docx", brief: "x" }),
+		).rejects.toThrow("39 characters restating the request")
+	})
+
+	it("falls back to the JSON error when there is no header", async () => {
+		vi.mocked(axios.post).mockResolvedValue({
+			status: 400,
+			data: Buffer.from(JSON.stringify({ error: { message: 'add "format" to the request' } })),
+			headers: {},
+		})
+		await expect(
+			buildClusterDocument({ baseUrl: "http://c:18080/v1" }, { format: "docx", brief: "x" }),
+		).rejects.toThrow('add "format" to the request')
+	})
+
+	it("puts the format in the path and the inventory in the body", async () => {
+		vi.mocked(axios.post).mockResolvedValue({ status: 200, data: Buffer.from("PK"), headers: {} })
+		await buildClusterDocument(
+			{ baseUrl: "http://c:18080/v1" },
+			{ format: "pptx", brief: "x", deck: true, appendBlocks: [{ type: "table" }] },
+		)
+		const [url, body] = vi.mocked(axios.post).mock.calls[0]
+		expect(url).toContain("/v1/documents/pptx")
+		expect((body as Record<string, unknown>).append_blocks).toHaveLength(1)
+		expect((body as Record<string, unknown>).deck).toBe(true)
 	})
 })
