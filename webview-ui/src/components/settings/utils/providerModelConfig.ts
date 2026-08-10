@@ -28,6 +28,7 @@ import {
 	vercelAiGatewayDefaultModelId,
 	opencodeGoDefaultModelId,
 	kenariDefaultModelId,
+	aiClusterDefaultModelId,
 	zooGatewayDefaultModelId,
 } from "@roo-code/types"
 
@@ -136,6 +137,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	"vercel-ai-gateway": { field: "vercelAiGatewayModelId", default: vercelAiGatewayDefaultModelId },
 	"opencode-go": { field: "opencodeGoModelId", default: opencodeGoDefaultModelId },
 	kenari: { field: "kenariModelId", default: kenariDefaultModelId },
+	"ai-cluster": { field: "aiClusterModelId", default: aiClusterDefaultModelId },
 	"zoo-gateway": { field: "zooGatewayModelId", default: zooGatewayDefaultModelId },
 	openai: { field: "openAiModelId" },
 	ollama: { field: "ollamaModelId" },

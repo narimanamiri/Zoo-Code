@@ -85,6 +85,7 @@ import { CodeIndexManager } from "../../services/code-index/manager"
 import type { IndexProgressUpdate } from "../../services/code-index/interfaces/manager"
 import { MdmService } from "../../services/mdm/MdmService"
 import { SkillsManager } from "../../services/skills/SkillsManager"
+import { applyClusterIntegration } from "../../services/ai-cluster"
 
 import { fileExistsAtPath } from "../../utils/fs"
 import { setTtsEnabled, setTtsSpeed } from "../../utils/tts"
@@ -327,9 +328,20 @@ export class ClineProvider
 			.then((hub) => {
 				this.mcpHub = hub
 				this.mcpHub.registerClient()
+
+				// An AI Cluster profile brings its own skills and its own MCP server.
+				// Both live on the address already configured for inference, so they
+				// are set up here rather than asked for again, and re-checked on every
+				// activation because a cluster that was off yesterday is the normal
+				// case. It waits for the hub: registering the cluster's MCP server
+				// means writing the hub's settings file, and there is no hub to ask
+				// for its path until this resolves.
+				this.syncClusterIntegration()
 			})
 			.catch((error) => {
 				this.log(`Failed to initialize MCP Hub: ${error}`)
+				// No hub, so no MCP registration — but the skills still sync.
+				this.syncClusterIntegration()
 			})
 
 		// Initialize Skills Manager for skill discovery
@@ -1770,6 +1782,10 @@ export class ClineProvider
 
 					// Keep the current task's sticky provider profile in sync with the newly-activated profile.
 					await this.persistStickyProviderProfileToCurrentTask(name)
+
+					// The base URL may have just changed, or an AI Cluster profile may
+					// have just become the active one.
+					this.syncClusterIntegration()
 				} else {
 					await this.updateGlobalState("listApiConfigMeta", await this.providerSettingsManager.listConfig())
 				}
@@ -1785,6 +1801,17 @@ export class ClineProvider
 			vscode.window.showErrorMessage(t("common:errors.create_api_config"))
 			return undefined
 		}
+	}
+
+	/**
+	 * Bring the cluster's skills and MCP registration in line with the active
+	 * profile. Fire-and-forget: it reaches a LAN box that may be switched off,
+	 * and nothing here may delay a settings change or an activation.
+	 */
+	public syncClusterIntegration(options: { force?: boolean } = {}): void {
+		applyClusterIntegration(this, options).catch((error) => {
+			this.log(`AI Cluster integration failed: ${error instanceof Error ? error.message : String(error)}`)
+		})
 	}
 
 	async deleteProviderProfile(profileToDelete: ProviderSettingsEntry) {

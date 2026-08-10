@@ -504,6 +504,9 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// Self-hosted and unconfigured in these fixtures: no base URL means the
+				// aggregate fetch never asks for it, so the key is present and empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})
@@ -692,6 +695,9 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// Self-hosted and unconfigured in these fixtures: no base URL means the
+				// aggregate fetch never asks for it, so the key is present and empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})
@@ -754,6 +760,9 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// Self-hosted and unconfigured in these fixtures: no base URL means the
+				// aggregate fetch never asks for it, so the key is present and empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})

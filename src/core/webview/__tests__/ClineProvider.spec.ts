@@ -3219,6 +3219,9 @@ describe("ClineProvider - Router Models", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// No base URL configured in these fixtures, so the aggregate fetch
+				// never asks the cluster and the key comes back empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})
@@ -3273,6 +3276,9 @@ describe("ClineProvider - Router Models", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// No base URL configured in these fixtures, so the aggregate fetch
+				// never asks the cluster and the key comes back empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})
@@ -3373,6 +3379,9 @@ describe("ClineProvider - Router Models", () => {
 				"opencode-go": mockModels,
 				kenari: mockModels,
 				"kimi-code": {},
+				// No base URL configured in these fixtures, so the aggregate fetch
+				// never asks the cluster and the key comes back empty.
+				"ai-cluster": {},
 			},
 			values: undefined,
 		})

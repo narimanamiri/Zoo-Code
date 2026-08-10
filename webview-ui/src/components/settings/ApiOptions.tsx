@@ -77,6 +77,7 @@ import {
 	VercelAiGateway,
 	OpenCodeGo,
 	Kenari,
+	AiCluster,
 	ZooGateway,
 	MiniMax,
 	Mimo,
@@ -671,6 +672,16 @@ const ApiOptions = ({
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 							routerModels={routerModels}
+							organizationAllowList={organizationAllowList}
+							modelValidationError={modelValidationError}
+							simplifySettings={fromWelcomeView}
+						/>
+					)}
+
+					{selectedProvider === providerIdentifiers.aiCluster && (
+						<AiCluster
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
 							organizationAllowList={organizationAllowList}
 							modelValidationError={modelValidationError}
 							simplifySettings={fromWelcomeView}

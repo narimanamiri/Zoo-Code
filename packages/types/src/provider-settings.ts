@@ -65,6 +65,9 @@ export const dynamicProviders = [
 	providerIdentifiers.opencodeGo,
 	providerIdentifiers.kenari,
 	providerIdentifiers.kimiCode,
+	// Self-hosted, so its model list is whatever that one server has loaded —
+	// there is nothing to hardcode and no default host to fall back to.
+	providerIdentifiers.aiCluster,
 ] as const
 
 export type DynamicProvider = (typeof dynamicProviders)[number]
@@ -373,6 +376,18 @@ const litellmSchema = baseProviderSettingsSchema.extend({
 	litellmUsePromptCache: z.boolean().optional(),
 })
 
+const aiClusterSchema = baseProviderSettingsSchema.extend({
+	aiClusterBaseUrl: z.string().optional(),
+	aiClusterApiKey: z.string().optional(),
+	aiClusterModelId: z.string().optional(),
+	// The same host also serves the cluster's skills and an MCP server. Both are
+	// opt-out rather than separate configuration: the address is already here, and
+	// asking for it a second time is how one of the three ends up pointing
+	// somewhere else.
+	aiClusterSyncSkills: z.boolean().optional(),
+	aiClusterRegisterMcp: z.boolean().optional(),
+})
+
 const sambaNovaSchema = apiModelIdProviderModelSchema.extend({
 	sambaNovaApiKey: z.string().optional(),
 })
@@ -461,6 +476,7 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	vercelAiGatewaySchema.merge(z.object({ apiProvider: z.literal(providerIdentifiers.vercelAiGateway) })),
 	opencodeGoSchema.merge(z.object({ apiProvider: z.literal(providerIdentifiers.opencodeGo) })),
 	kenariSchema.merge(z.object({ apiProvider: z.literal(providerIdentifiers.kenari) })),
+	aiClusterSchema.merge(z.object({ apiProvider: z.literal(providerIdentifiers.aiCluster) })),
 	zooGatewaySchema.merge(z.object({ apiProvider: z.literal(providerIdentifiers.zooGateway) })),
 	defaultSchema,
 ])
@@ -500,6 +516,7 @@ export const providerSettingsSchema = z.object({
 	...vercelAiGatewaySchema.shape,
 	...opencodeGoSchema.shape,
 	...kenariSchema.shape,
+	...aiClusterSchema.shape,
 	...zooGatewaySchema.shape,
 	...codebaseIndexProviderSchema.shape,
 })
@@ -533,6 +550,7 @@ export const modelIdKeys = [
 	"vercelAiGatewayModelId",
 	"opencodeGoModelId",
 	"kenariModelId",
+	"aiClusterModelId",
 	"zooGatewayModelId",
 ] as const satisfies readonly (keyof ProviderSettings)[]
 
@@ -583,6 +601,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	[providerIdentifiers.vercelAiGateway]: "vercelAiGatewayModelId",
 	[providerIdentifiers.opencodeGo]: "opencodeGoModelId",
 	[providerIdentifiers.kenari]: "kenariModelId",
+	[providerIdentifiers.aiCluster]: "aiClusterModelId",
 	[providerIdentifiers.zooGateway]: "zooGatewayModelId",
 }
 
@@ -769,6 +788,7 @@ export const MODELS_BY_PROVIDER: Record<
 	},
 	[providerIdentifiers.opencodeGo]: { id: providerIdentifiers.opencodeGo, label: "Opencode Go", models: [] },
 	[providerIdentifiers.kenari]: { id: providerIdentifiers.kenari, label: "Kenari", models: [] },
+	[providerIdentifiers.aiCluster]: { id: providerIdentifiers.aiCluster, label: "AI Cluster", models: [] },
 	[providerIdentifiers.zooGateway]: { id: providerIdentifiers.zooGateway, label: "Zoo Gateway", models: [] },
 
 	// Local providers; models discovered from localhost endpoints.

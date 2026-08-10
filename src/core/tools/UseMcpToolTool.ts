@@ -2,6 +2,8 @@ import type { ClineAskUseMcpServer, McpExecutionStatus, McpResourceLink } from "
 
 import { Task } from "../task/Task"
 import { formatResponse } from "../prompts/responses"
+import { clusterCredentials } from "../../services/ai-cluster"
+import { deliveryNote, documentLinks, saveDocuments } from "../../services/ai-cluster/documentDelivery"
 import { t } from "../../i18n"
 import type { ToolUse } from "../../shared/tools"
 import { toolNamesMatch } from "../../utils/mcp-name"
@@ -387,8 +389,37 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 			})
 		}
 
+		// A document the cluster built comes back as a link, because an MCP
+		// result is text. Fetching it here is the difference between "here is a
+		// URL" and a file in the workspace — see services/ai-cluster/documentDelivery.
+		toolResultPretty = await this.deliverDocuments(task, toolResultPretty)
+
 		await task.say("mcp_server_response", toolResultPretty, images)
 		pushToolResult(formatResponse.toolResult(toolResultPretty, images))
+	}
+
+	private async deliverDocuments(task: Task, text: string): Promise<string> {
+		if (!documentLinks(text).length) {
+			return text
+		}
+		try {
+			const provider = task.providerRef.deref()
+			const credentials = clusterCredentials((await provider?.getState())?.apiConfiguration)
+			const { saved, failed } = await saveDocuments(text, task.cwd, { apiKey: credentials?.apiKey })
+			for (const document of saved) {
+				await task.fileContextTracker.trackFileContext(document.relativePath, "roo_edited")
+			}
+			const note = deliveryNote(saved, failed)
+			return note ? [text, note].join("\n\n") : text
+		} catch (error) {
+			// Never turn a document that was built into a tool call that failed.
+			task.providerRef
+				.deref()
+				?.log(
+					`AI Cluster: could not save a document automatically: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			return text
+		}
 	}
 }
 

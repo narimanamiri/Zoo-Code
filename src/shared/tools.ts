@@ -1,6 +1,13 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 
-import type { ClineAsk, ToolProgressStatus, ToolGroup, ToolName, GenerateImageParams } from "@roo-code/types"
+import type {
+	ClineAsk,
+	ToolProgressStatus,
+	ToolGroup,
+	ToolName,
+	GenerateImageParams,
+	DocumentProjectParams,
+} from "@roo-code/types"
 
 export type ToolResponse = string | Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam>
 
@@ -78,6 +85,9 @@ export const toolParamNames = [
 	"include_siblings",
 	"include_header",
 	"max_lines",
+	"source", // document_project parameter: which directory to read
+	"title", // document_project parameter
+	"author", // document_project parameter
 	// read_file legacy format parameter (backward compatibility)
 	"files",
 	"line_ranges",
@@ -109,6 +119,7 @@ export type NativeToolArgs = {
 	}
 	codebase_search: { query: string; path?: string }
 	generate_image: GenerateImageParams
+	document_project: DocumentProjectParams
 	run_slash_command: { command: string; args?: string }
 	skill: { skill: string; args?: string }
 	search_files: { path: string; regex: string; file_pattern?: string | null }
@@ -258,6 +269,13 @@ export interface GenerateImageToolUse extends ToolUse<"generate_image"> {
 	params: Partial<Pick<Record<ToolParamName, string>, "prompt" | "path" | "image">>
 }
 
+export type { DocumentProjectParams }
+
+export interface DocumentProjectToolUse extends ToolUse<"document_project"> {
+	name: "document_project"
+	params: Partial<Pick<Record<ToolParamName, string>, "path" | "source" | "title" | "author">>
+}
+
 // Define tool group configuration
 export type ToolGroupConfig = {
 	tools: readonly string[]
@@ -289,6 +307,7 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	run_slash_command: "run slash command",
 	skill: "load skill",
 	generate_image: "generate images",
+	document_project: "document a codebase",
 	custom_tool: "use custom tools",
 	invalid_tool_call: "invalid tool call",
 } as const
@@ -299,7 +318,7 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 		tools: ["read_file", "search_files", "list_files", "codebase_search"],
 	},
 	edit: {
-		tools: ["apply_diff", "write_to_file", "generate_image"],
+		tools: ["apply_diff", "write_to_file", "generate_image", "document_project"],
 		customTools: ["edit", "search_replace", "edit_file", "apply_patch"],
 	},
 	command: {
