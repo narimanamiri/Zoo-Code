@@ -141,14 +141,19 @@ export async function buildClusterDocument(
 	const buffer = Buffer.from(response.data)
 	if (response.status >= 400) {
 		let message = `the cluster refused the request (HTTP ${response.status})`
-		try {
-			const parsed = JSON.parse(buffer.toString("utf8"))
-			message = parsed?.error?.message ?? message
-		} catch {
-			// Not JSON: for ?download=1 the cluster answers a refusal with a
-			// rendered document explaining itself, because an agent saves
-			// whatever comes back under the name it chose.
-			message += ", and returned an explanation in place of the document"
+		// For ?download=1 a refusal comes back as a rendered document explaining
+		// itself — readable by whoever opens it, useless to a program. The same
+		// reason is repeated in a header for exactly this reason.
+		const header = response.headers?.["x-document-refused"]
+		if (typeof header === "string" && header.trim()) {
+			message = header.trim()
+		} else {
+			try {
+				const parsed = JSON.parse(buffer.toString("utf8"))
+				message = parsed?.error?.message ?? message
+			} catch {
+				message += ", and returned an explanation in place of the document"
+			}
 		}
 		throw new Error(message)
 	}
