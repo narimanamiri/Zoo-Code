@@ -6,7 +6,7 @@ import { formatResponse } from "../prompts/responses"
 import { getReadablePath } from "../../utils/path"
 import { isPathOutsideWorkspace } from "../../utils/pathUtils"
 import { buildClusterDocument } from "../../services/ai-cluster/client"
-import { clusterCredentials } from "../../services/ai-cluster"
+import { documentCredentials } from "../../services/ai-cluster"
 import { digestRepository, digestToBlocks, digestToBrief } from "../../services/ai-cluster/repoDigest"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { DocumentProjectParams, ToolUse } from "../../shared/tools"
@@ -53,16 +53,19 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 		}
 
 		const provider = task.providerRef.deref()
-		const credentials = clusterCredentials((await provider?.getState())?.apiConfiguration)
+		const credentials = documentCredentials((await provider?.getState())?.apiConfiguration)
 		if (!credentials) {
-			// Named plainly: the tool is offered on every profile, and a user on
-			// another provider should learn why it cannot run rather than watch
-			// the model invent a reason.
+			// Only when the profile names no address at all — a hosted provider
+			// like Anthropic or OpenAI proper. Said plainly, because the
+			// alternative the model reaches for is writing the document itself.
 			pushToolResult(
 				formatResponse.toolError(
-					"document_project builds the document on an AI Cluster, and the current profile is " +
-						"not pointed at one. Select an AI Cluster profile (Settings → Providers → AI " +
-						"Cluster) and try again.",
+					"document_project builds the document on an AI Cluster, and this profile does not " +
+						"point at one — it has no base URL of its own. Switch to the profile that talks " +
+						"to your cluster (either the AI Cluster provider or an OpenAI Compatible profile " +
+						"pointing at it) and try again. Do not write the document by hand instead: it " +
+						"would be a summary of the few files that fit in context, presented as the " +
+						"documentation of the whole project.",
 				),
 			)
 			return

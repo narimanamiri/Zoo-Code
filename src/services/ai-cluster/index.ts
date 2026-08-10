@@ -30,6 +30,48 @@ export const clusterCredentials = (settings: ProviderSettings | undefined): Clus
 	return baseUrl ? { baseUrl, apiKey: settings.aiClusterApiKey } : undefined
 }
 
+/**
+ * Where to send a document, for a profile that is not the AI Cluster one.
+ *
+ * That provider was added late. Anyone who set this cluster up before it
+ * existed — which the cluster's own README told people to do for months — has
+ * an "OpenAI Compatible" profile pointing at the same address, and everything
+ * else works: same host, same port, same API. Refusing to build a document
+ * there because a dropdown says something else is a distinction the user never
+ * made, and the observed result is worse than an error: the model quietly
+ * writes the document by hand instead, and two pages of invented prose come
+ * back in place of the documentation.
+ *
+ * So the address is taken from whichever field the profile actually fills in.
+ * The request then either reaches a cluster and returns a document, or does
+ * not and returns an error worth reading.
+ */
+export const documentCredentials = (settings: ProviderSettings | undefined): ClusterCredentials | undefined => {
+	const cluster = clusterCredentials(settings)
+	if (cluster) {
+		return cluster
+	}
+	if (!settings) {
+		return undefined
+	}
+	// Every profile that points at a self-hosted OpenAI-compatible endpoint
+	// fills in one of these. Ordered by how likely it is to be this cluster.
+	const candidates: Array<[string | undefined, string | undefined]> = [
+		[settings.aiClusterBaseUrl, settings.aiClusterApiKey],
+		[settings.openAiBaseUrl, settings.openAiApiKey],
+		[settings.litellmBaseUrl, settings.litellmApiKey],
+		[settings.ollamaBaseUrl, settings.ollamaApiKey],
+		[settings.lmStudioBaseUrl, undefined],
+	]
+	for (const [url, apiKey] of candidates) {
+		const baseUrl = url?.trim()
+		if (baseUrl && /^https?:\/\//i.test(baseUrl)) {
+			return { baseUrl, apiKey }
+		}
+	}
+	return undefined
+}
+
 export type ClusterIntegrationResult = {
 	skills?: ClusterSkillsSyncResult
 	skillsError?: string

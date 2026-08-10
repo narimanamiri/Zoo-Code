@@ -119,14 +119,42 @@ describe("documentProjectTool", () => {
 		expect(vi.mocked(buildClusterDocument).mock.calls[0][1].author).toBe("Nariman Amiri")
 	})
 
-	it("says what to do when the profile is not an AI Cluster", async () => {
+	it("works from an OpenAI Compatible profile pointing at the cluster", async () => {
+		// The AI Cluster provider was added late. Anyone who set this up before
+		// it existed has this profile, and refusing it sends the model off to
+		// write the document by hand — two pages of prose about a codebase
+		// nobody read, which is exactly what was reported.
 		task.providerRef = {
-			deref: () => ({ getState: vi.fn().mockResolvedValue({ apiConfiguration: { apiProvider: "openai" } }) }),
+			deref: () => ({
+				getState: vi.fn().mockResolvedValue({
+					apiConfiguration: {
+						apiProvider: "openai",
+						openAiBaseUrl: "http://cluster:18080/v1",
+						openAiApiKey: "k",
+					},
+				}),
+			}),
+		}
+		await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
+
+		expect(vi.mocked(buildClusterDocument)).toHaveBeenCalled()
+		expect(vi.mocked(buildClusterDocument).mock.calls[0][0]).toEqual({
+			baseUrl: "http://cluster:18080/v1",
+			apiKey: "k",
+		})
+	})
+
+	it("says what to do when the profile names no cluster at all", async () => {
+		task.providerRef = {
+			deref: () => ({ getState: vi.fn().mockResolvedValue({ apiConfiguration: { apiProvider: "anthropic" } }) }),
 		}
 		await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
 
 		expect(vi.mocked(buildClusterDocument)).not.toHaveBeenCalled()
-		expect(resultOf(callbacks)).toContain("AI Cluster profile")
+		const result = resultOf(callbacks)
+		expect(result).toContain("does not point at one")
+		// And tells the model not to fall back to writing it itself.
+		expect(result).toContain("Do not write the document by hand")
 	})
 
 	it("passes the cluster's refusal through verbatim, since it says what to fix", async () => {
