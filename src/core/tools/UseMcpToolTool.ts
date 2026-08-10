@@ -2,7 +2,7 @@ import type { ClineAskUseMcpServer, McpExecutionStatus, McpResourceLink } from "
 
 import { Task } from "../task/Task"
 import { formatResponse } from "../prompts/responses"
-import { clusterCredentials } from "../../services/ai-cluster"
+import { documentCredentials } from "../../services/ai-cluster"
 import { deliveryNote, documentLinks, saveDocuments } from "../../services/ai-cluster/documentDelivery"
 import { t } from "../../i18n"
 import type { ToolUse } from "../../shared/tools"
@@ -404,7 +404,7 @@ export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
 		}
 		try {
 			const provider = task.providerRef.deref()
-			const credentials = clusterCredentials((await provider?.getState())?.apiConfiguration)
+			const credentials = documentCredentials((await provider?.getState())?.apiConfiguration)
 			const { saved, failed } = await saveDocuments(text, task.cwd, { apiKey: credentials?.apiKey })
 			for (const document of saved) {
 				await task.fileContextTracker.trackFileContext(document.relativePath, "roo_edited")

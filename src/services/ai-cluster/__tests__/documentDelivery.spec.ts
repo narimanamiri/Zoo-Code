@@ -7,6 +7,7 @@ import axios from "axios"
 
 import { deliveryNote, documentLinks, saveDocuments } from "../documentDelivery"
 import { buildClusterDocument } from "../client"
+import { documentCredentials } from "../index"
 
 vi.mock("axios")
 
@@ -156,5 +157,42 @@ describe("buildClusterDocument", () => {
 		expect(url).toContain("/v1/documents/pptx")
 		expect((body as Record<string, unknown>).append_blocks).toHaveLength(1)
 		expect((body as Record<string, unknown>).deck).toBe(true)
+	})
+})
+
+describe("documentCredentials", () => {
+	it("uses the AI Cluster profile when that is what the user picked", () => {
+		expect(
+			documentCredentials({
+				apiProvider: "ai-cluster",
+				aiClusterBaseUrl: "http://c:18080/v1",
+				aiClusterApiKey: "k",
+			} as never),
+		).toEqual({ baseUrl: "http://c:18080/v1", apiKey: "k" })
+	})
+
+	it("accepts an OpenAI Compatible profile pointing at the same address", () => {
+		// This is what the cluster's README told people to set up for months.
+		expect(
+			documentCredentials({
+				apiProvider: "openai",
+				openAiBaseUrl: "http://c:18080/v1",
+				openAiApiKey: "k",
+			} as never),
+		).toEqual({ baseUrl: "http://c:18080/v1", apiKey: "k" })
+	})
+
+	it("accepts the other self-hosted profiles too", () => {
+		expect(
+			documentCredentials({ apiProvider: "lmstudio", lmStudioBaseUrl: "http://c:1234/v1" } as never)?.baseUrl,
+		).toBe("http://c:1234/v1")
+		expect(documentCredentials({ apiProvider: "ollama", ollamaBaseUrl: "http://c:11434" } as never)?.baseUrl).toBe(
+			"http://c:11434",
+		)
+	})
+
+	it("gives up on a profile with no address of its own", () => {
+		expect(documentCredentials({ apiProvider: "anthropic", apiKey: "sk-x" } as never)).toBeUndefined()
+		expect(documentCredentials(undefined)).toBeUndefined()
 	})
 })
