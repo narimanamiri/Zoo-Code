@@ -218,6 +218,8 @@ export type DigestDirectory = {
 	lines: number
 }
 
+export type DigestEdge = { from: string; to: string }
+
 export type RepoDigest = {
 	name: string
 	root: string
@@ -227,10 +229,174 @@ export type RepoDigest = {
 	directories: DigestDirectory[]
 	files: DigestFile[]
 	configs: Array<{ path: string; text: string; clipped: boolean }>
+	/** Edges between the project's own modules, from the imports in the code. */
+	imports: DigestEdge[]
 }
 
 /** Blocks the caller already holds as fact, typeset verbatim by the cluster. */
 export type SpecBlock = Record<string, unknown>
+
+/**
+ * Every module path a file names, before any of them are resolved.
+ *
+ * Python needs more than one pattern: `from . import build, charts` names its
+ * siblings in the import list rather than in the module path, which is how most
+ * packages import themselves — a single regex for `from X import Y` finds "."
+ * and nothing useful. Mirrors _raw_imports in tools/repo_digest/repo_digest.py.
+ */
+const PY_FROM = /^[ \t]*from[ \t]+([.\w]+)[ \t]+import[ \t]+(.+)$/gm
+const PY_IMPORT = /^[ \t]*import[ \t]+([.\w][.\w, \t]*)$/gm
+const JS_IMPORT = /(?:from[ \t]+|require\([ \t]*|import[ \t]+)['"]([^'"]+)['"]/g
+const GO_IMPORT = /"([\w./-]+)"/g
+const RS_IMPORT = /^[ \t]*use[ \t]+(?:crate::)?([\w:]+)/gm
+
+const JS_SUFFIXES = [".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".mjs", ".cjs"]
+
+function rawImports(text: string, suffix: string): string[] {
+	const out: string[] = []
+	const scan = (pattern: RegExp, take: (m: RegExpExecArray) => void) => {
+		const scanner = new RegExp(pattern.source, pattern.flags)
+		let match: RegExpExecArray | null
+		while ((match = scanner.exec(text)) !== null) {
+			take(match)
+		}
+	}
+	if (suffix === ".py" || suffix === ".pyi") {
+		scan(PY_FROM, (m) => {
+			const [, pkg, names] = m
+			const parts = names
+				.split(",")
+				.map((n) => n.trim().split(" as ")[0])
+				.filter(Boolean)
+			if (pkg.replace(/\./g, "") === "") {
+				out.push(...parts)
+			} else {
+				out.push(pkg, ...parts.map((n) => `${pkg}/${n}`))
+			}
+		})
+		scan(PY_IMPORT, (m) => out.push(...m[1].split(",").map((n) => n.trim().split(" as ")[0])))
+	} else if (JS_SUFFIXES.includes(suffix)) {
+		scan(JS_IMPORT, (m) => out.push(m[1]))
+	} else if (suffix === ".go") {
+		scan(GO_IMPORT, (m) => out.push(m[1]))
+	} else if (suffix === ".rs") {
+		scan(RS_IMPORT, (m) => out.push(m[1]))
+	}
+	return out.filter((entry) => entry && entry !== "*")
+}
+
+/** The name a file is known by inside its own project. */
+export function moduleName(relative: string): string {
+	return relative.replace(/\.[^.]+$/, "").replace(/\/(index|__init__|mod)$/, "") || relative
+}
+
+/**
+ * Edges between the project's own modules, from what each file imports.
+ *
+ * Resolved by matching the tail of an import against the modules that exist.
+ * Anything that resolves to nothing was a third-party package, and a diagram of
+ * everything that imports the standard library is not a diagram of anything.
+ */
+export function importEdges(files: DigestFile[], texts: Map<string, string>): DigestEdge[] {
+	const modules = files.map((file) => moduleName(file.path))
+	const byTail = new Map<string, Set<string>>()
+	for (const name of modules) {
+		const parts = name.split("/")
+		for (let depth = 1; depth <= 3; depth++) {
+			const tail = parts.slice(-depth).join("/")
+			if (!byTail.has(tail)) {
+				byTail.set(tail, new Set())
+			}
+			byTail.get(tail)!.add(name)
+		}
+	}
+
+	const edges: DigestEdge[] = []
+	const seen = new Set<string>()
+	for (const file of files) {
+		const text = texts.get(file.path)
+		if (!text) {
+			continue
+		}
+		const source = moduleName(file.path)
+		for (const raw of rawImports(text, path.extname(file.path).toLowerCase())) {
+			const candidate = raw
+				.replace(/::/g, "/")
+				.replace(/\./g, "/")
+				.replace(/^(?:\.\.\/|\.\/)+/, "")
+			const parts = candidate.split("/").filter(Boolean)
+			const names = new Set<string>()
+			for (let depth = 1; depth <= 3; depth++) {
+				for (const name of byTail.get(parts.slice(-depth).join("/")) ?? []) {
+					names.add(name)
+				}
+			}
+			for (const target of names) {
+				const key = `${source} -> ${target}`
+				if (target !== source && !seen.has(key)) {
+					seen.add(key)
+					edges.push({ from: source, to: target })
+				}
+			}
+		}
+	}
+	return edges
+}
+
+/**
+ * The project's own modules and the imports between them, as a diagram.
+ *
+ * Trimmed to the most connected modules: a graph of two hundred files is a
+ * picture of a hairball. Null when there are no internal imports to draw, which
+ * is the honest answer for a pile of scripts.
+ */
+export function dependencyDiagram(digest: RepoDigest, maxNodes = 12): SpecBlock | null {
+	const edges = digest.imports ?? []
+	if (edges.length < 2) {
+		return null
+	}
+	const degree = new Map<string, number>()
+	for (const edge of edges) {
+		degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1)
+		degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1)
+	}
+	const keep = new Set(
+		[...degree.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, maxNodes)
+			.map(([name]) => name),
+	)
+	const kept = edges.filter((edge) => keep.has(edge.from) && keep.has(edge.to))
+	if (kept.length < 2) {
+		return null
+	}
+	// Four boxes all labelled "config" is not a diagram of anything. A file's
+	// own name is the label until two of them collide, and then each keeps
+	// enough of its path to tell them apart.
+	const byShort = new Map<string, string[]>()
+	for (const name of keep) {
+		const short = name.split("/").pop() || name
+		byShort.set(short, [...(byShort.get(short) ?? []), name])
+	}
+	const labels = new Map<string, string>()
+	for (const [short, names] of byShort) {
+		for (const name of names) {
+			const parts = name.split("/")
+			labels.set(name, names.length === 1 ? short : parts.slice(-2).join("/"))
+		}
+	}
+
+	return {
+		type: "diagram",
+		diagram: "graph",
+		direction: "right",
+		nodes: [...keep].sort().map((name) => ({ id: name, label: labels.get(name) ?? name })),
+		edges: kept,
+		caption:
+			`Imports between the ${keep.size} most connected modules of ${digest.name}, taken from ` +
+			`the source. An arrow points at what a module depends on.`,
+	}
+}
 
 const endsWithAny = (name: string, suffixes: string[]): boolean => suffixes.some((s) => name.endsWith(s))
 
@@ -313,6 +479,7 @@ async function readTextFile(fullPath: string): Promise<string | undefined> {
 /** Walk the project and read everything in it that is text. */
 export async function digestRepository(root: string, maxFiles = 4_000): Promise<RepoDigest> {
 	const files: DigestFile[] = []
+	const texts = new Map<string, string>()
 	const configs: RepoDigest["configs"] = []
 	const byDirectory = new Map<string, DigestDirectory>()
 	let totalLines = 0
@@ -389,6 +556,7 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 			}
 
 			files.push({ path: relative, lines, purpose: headerComment(text, suffix), defines })
+			texts.set(relative, text)
 			if (CONFIG_NAMES.has(path.basename(relative).toLowerCase())) {
 				configs.push({
 					path: relative,
@@ -400,6 +568,7 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 	}
 
 	await walk(root)
+	const imports = importEdges(files, texts)
 	files.sort((a, b) => b.lines - a.lines)
 
 	return {
@@ -411,6 +580,7 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 		directories: [...byDirectory.values()].sort((a, b) => b.lines - a.lines),
 		files,
 		configs,
+		imports,
 	}
 }
 
@@ -516,21 +686,25 @@ export function digestToBrief(digest: RepoDigest, budget = 90_000): string {
  * to retype them.
  */
 export function digestToBlocks(digest: RepoDigest, maxRows = 400): SpecBlock[] {
-	const top = digest.directories.filter((entry) => entry.lines > 0).slice(0, 10)
+	const graph = dependencyDiagram(digest)
 	const blocks: SpecBlock[] = [
 		{ type: "pagebreak" },
-		{ type: "heading", level: 1, text: "Appendix: where the code is" },
+		{ type: "heading", level: 1, text: "Appendix: how the modules fit together" },
+		{
+			type: "paragraph",
+			text:
+				"Drawn from the imports in the code itself: an arrow runs from a module to the " +
+				"module it imports. Only the project's own modules appear — third-party packages " +
+				"are left out, because a diagram of everything that imports the standard library " +
+				"is not a diagram of anything.",
+		},
 	]
-	if (top.length) {
-		const share = Math.round((100 * top[0].lines) / Math.max(digest.totalLines, 1))
+	if (graph) {
+		blocks.push(graph)
+	} else {
 		blocks.push({
-			type: "chart",
-			chart: "bar",
-			// "." is what a walk calls the root; nobody reads a chart axis and
-			// thinks "full stop means the top level".
-			labels: top.map((entry) => (entry.name === "." ? "(root)" : entry.name)),
-			values: top.map((entry) => entry.lines),
-			caption: `Lines of code by top-level directory. ${top[0].name} alone holds ${share}% of the project.`,
+			type: "paragraph",
+			text: "This project's files do not import one another, so there is no dependency graph to draw.",
 		})
 	}
 	blocks.push(

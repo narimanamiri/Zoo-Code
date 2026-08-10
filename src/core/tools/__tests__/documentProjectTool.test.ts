@@ -25,6 +25,7 @@ const digest = {
 	directories: [{ name: "src", files: 40, lines: 7_500 }],
 	files: [{ path: "src/a.ts", lines: 100, purpose: "does a thing", defines: ["a"] }],
 	configs: [],
+	imports: [{ from: "src/a", to: "src/b" }],
 }
 
 /**
