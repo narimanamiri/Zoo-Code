@@ -6,10 +6,10 @@
 		"imageTooLarge": "Arquivo de imagem é muito grande ({{size}} MB). O tamanho máximo permitido é {{max}} MB.",
 		"imageWithSize": "Arquivo de imagem ({{size}} KB)"
 	},
-	"toolRepetitionLimitReached": "Zoo parece estar preso em um loop, tentando a mesma ação ({{toolName}}) repetidamente. Isso pode indicar um problema com sua estratégia atual. Considere reformular a tarefa, fornecer instruções mais específicas ou guiá-lo para uma abordagem diferente.",
-	"unknownToolError": "Zoo tentou usar uma ferramenta desconhecida: \"{{toolName}}\". Tentando novamente...",
-	"missingToolParameter": "Zoo tentou usar {{toolName}} sem valor para o parâmetro obrigatório '{{paramName}}'. Tentando novamente...",
-	"missingToolParameterWithPath": "Zoo tentou usar {{toolName}} para '{{relPath}}' sem valor para o parâmetro obrigatório '{{paramName}}'. Tentando novamente...",
+	"toolRepetitionLimitReached": "ViraCode parece estar preso em um loop, tentando a mesma ação ({{toolName}}) repetidamente. Isso pode indicar um problema com sua estratégia atual. Considere reformular a tarefa, fornecer instruções mais específicas ou guiá-lo para uma abordagem diferente.",
+	"unknownToolError": "ViraCode tentou usar uma ferramenta desconhecida: \"{{toolName}}\". Tentando novamente...",
+	"missingToolParameter": "ViraCode tentou usar {{toolName}} sem valor para o parâmetro obrigatório '{{paramName}}'. Tentando novamente...",
+	"missingToolParameterWithPath": "ViraCode tentou usar {{toolName}} para '{{relPath}}' sem valor para o parâmetro obrigatório '{{paramName}}'. Tentando novamente...",
 	"codebaseSearch": {
 		"approval": "Pesquisando '{{query}}' na base de código..."
 	},
@@ -35,7 +35,7 @@
 		"invalidImageFormat": "Formato de imagem inválido recebido",
 		"unknownError": "Ocorreu um erro desconhecido",
 		"roo": {
-			"authRequired": "A autenticação do Zoo Code Cloud é necessária para geração de imagens. Faça login no Zoo Code Cloud."
+			"authRequired": "A autenticação do ViraCode Cloud é necessária para geração de imagens. Faça login no ViraCode Cloud."
 		}
 	}
 }

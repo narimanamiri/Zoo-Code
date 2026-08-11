@@ -6,10 +6,10 @@
 		"imageTooLarge": "El archivo de imagen es demasiado grande ({{size}} MB). El tamaño máximo permitido es {{max}} MB.",
 		"imageWithSize": "Archivo de imagen ({{size}} KB)"
 	},
-	"toolRepetitionLimitReached": "Zoo parece estar atrapado en un bucle, intentando la misma acción ({{toolName}}) repetidamente. Esto podría indicar un problema con su estrategia actual. Considera reformular la tarea, proporcionar instrucciones más específicas o guiarlo hacia un enfoque diferente.",
-	"unknownToolError": "Zoo intentó usar una herramienta desconocida: \"{{toolName}}\". Reintentando...",
-	"missingToolParameter": "Zoo intentó usar {{toolName}} sin valor para el parámetro requerido '{{paramName}}'. Reintentando...",
-	"missingToolParameterWithPath": "Zoo intentó usar {{toolName}} para '{{relPath}}' sin valor para el parámetro requerido '{{paramName}}'. Reintentando...",
+	"toolRepetitionLimitReached": "ViraCode parece estar atrapado en un bucle, intentando la misma acción ({{toolName}}) repetidamente. Esto podría indicar un problema con su estrategia actual. Considera reformular la tarea, proporcionar instrucciones más específicas o guiarlo hacia un enfoque diferente.",
+	"unknownToolError": "ViraCode intentó usar una herramienta desconocida: \"{{toolName}}\". Reintentando...",
+	"missingToolParameter": "ViraCode intentó usar {{toolName}} sin valor para el parámetro requerido '{{paramName}}'. Reintentando...",
+	"missingToolParameterWithPath": "ViraCode intentó usar {{toolName}} para '{{relPath}}' sin valor para el parámetro requerido '{{paramName}}'. Reintentando...",
 	"codebaseSearch": {
 		"approval": "Buscando '{{query}}' en la base de código..."
 	},
@@ -35,7 +35,7 @@
 		"invalidImageFormat": "Formato de imagen no válido recibido",
 		"unknownError": "Ocurrió un error desconocido",
 		"roo": {
-			"authRequired": "Se requiere autenticación de Zoo Code Cloud para la generación de imágenes. Por favor, inicia sesión en Zoo Code Cloud."
+			"authRequired": "Se requiere autenticación de ViraCode Cloud para la generación de imágenes. Por favor, inicia sesión en ViraCode Cloud."
 		}
 	}
 }

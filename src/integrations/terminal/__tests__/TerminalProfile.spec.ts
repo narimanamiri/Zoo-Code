@@ -711,7 +711,7 @@ describe("Terminal VS Code terminal profile (#277)", () => {
 			expect(options.shellArgs).toBeUndefined()
 		})
 
-		it("merges safe profile env while preserving Zoo Code shell-integration vars", () => {
+		it("merges safe profile env while preserving ViraCode shell-integration vars", () => {
 			stubProfiles({
 				[Terminal.getPlatformProfileKey(process.platform)]: {
 					"Custom Bash": {

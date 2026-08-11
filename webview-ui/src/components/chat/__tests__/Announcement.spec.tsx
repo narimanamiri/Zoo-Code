@@ -50,7 +50,7 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 			}
 
 			if (key === "chat:announcement.title" || key === "chat:announcement.finalRelease.title") {
-				return `Zoo Code ${options?.version ?? ""} Released`
+				return `ViraCode ${options?.version ?? ""} Released`
 			}
 
 			return translations[key] ?? key
@@ -62,7 +62,7 @@ describe("Announcement", () => {
 	it("renders the announcement title and highlights", () => {
 		render(<Announcement hideAnnouncement={vi.fn()} />)
 
-		expect(screen.getByText("Zoo Code 3.74.0 Released")).toBeInTheDocument()
+		expect(screen.getByText("ViraCode 3.74.0 Released")).toBeInTheDocument()
 		expect(
 			screen.getByText(
 				"More OpenAI controls — use Fast priority mode with OpenAI Codex and choose higher reasoning effort for OpenAI-compatible models.",
@@ -86,7 +86,7 @@ describe("Announcement", () => {
 		expect(screen.getAllByRole("listitem")).toHaveLength(3)
 	})
 
-	it("links support users to the Zoo Code GitHub repository", () => {
+	it("links support users to the ViraCode GitHub repository", () => {
 		render(<Announcement hideAnnouncement={vi.fn()} />)
 
 		expect(screen.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", EXTERNAL_LINKS.GITHUB_REPO)

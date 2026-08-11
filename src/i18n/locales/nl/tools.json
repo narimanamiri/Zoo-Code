@@ -6,10 +6,10 @@
 		"imageTooLarge": "Afbeeldingsbestand is te groot ({{size}} MB). De maximaal toegestane grootte is {{max}} MB.",
 		"imageWithSize": "Afbeeldingsbestand ({{size}} KB)"
 	},
-	"toolRepetitionLimitReached": "Zoo lijkt vast te zitten in een lus, waarbij hij herhaaldelijk dezelfde actie ({{toolName}}) probeert. Dit kan duiden op een probleem met de huidige strategie. Overweeg de taak te herformuleren, specifiekere instructies te geven of Zoo naar een andere aanpak te leiden.",
-	"unknownToolError": "Zoo probeerde een onbekende tool te gebruiken: \"{{toolName}}\". Opnieuw proberen...",
-	"missingToolParameter": "Zoo probeerde {{toolName}} te gebruiken zonder waarde voor de vereiste parameter '{{paramName}}'. Opnieuw proberen...",
-	"missingToolParameterWithPath": "Zoo probeerde {{toolName}} te gebruiken voor '{{relPath}}' zonder waarde voor de vereiste parameter '{{paramName}}'. Opnieuw proberen...",
+	"toolRepetitionLimitReached": "ViraCode lijkt vast te zitten in een lus, waarbij hij herhaaldelijk dezelfde actie ({{toolName}}) probeert. Dit kan duiden op een probleem met de huidige strategie. Overweeg de taak te herformuleren, specifiekere instructies te geven of ViraCode naar een andere aanpak te leiden.",
+	"unknownToolError": "ViraCode probeerde een onbekende tool te gebruiken: \"{{toolName}}\". Opnieuw proberen...",
+	"missingToolParameter": "ViraCode probeerde {{toolName}} te gebruiken zonder waarde voor de vereiste parameter '{{paramName}}'. Opnieuw proberen...",
+	"missingToolParameterWithPath": "ViraCode probeerde {{toolName}} te gebruiken voor '{{relPath}}' zonder waarde voor de vereiste parameter '{{paramName}}'. Opnieuw proberen...",
 	"codebaseSearch": {
 		"approval": "Zoeken naar '{{query}}' in codebase..."
 	},
@@ -35,7 +35,7 @@
 		"invalidImageFormat": "Ongeldig afbeeldingsformaat ontvangen",
 		"unknownError": "Er is een onbekende fout opgetreden",
 		"roo": {
-			"authRequired": "Zoo Code Cloud-authenticatie is vereist voor het genereren van afbeeldingen. Log in bij Zoo Code Cloud."
+			"authRequired": "ViraCode Cloud-authenticatie is vereist voor het genereren van afbeeldingen. Log in bij ViraCode Cloud."
 		}
 	}
 }

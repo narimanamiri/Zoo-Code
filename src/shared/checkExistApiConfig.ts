@@ -27,7 +27,7 @@ export function checkExistKey(config: ProviderSettings | undefined, zooCodeIsAut
 		return true
 	}
 
-	// Zoo Gateway uses session auth (profile token and/or global Zoo Code login),
+	// Zoo Gateway uses session auth (profile token and/or global ViraCode login),
 	// not a traditional API key listed in SECRET_STATE_KEYS.
 	if (config.apiProvider === providerIdentifiers.zooGateway) {
 		return Boolean(config.zooSessionToken) || Boolean(zooCodeIsAuthenticated)

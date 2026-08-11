@@ -25,7 +25,7 @@ export class Terminal extends BaseTerminal {
 		if (terminal) {
 			this.terminal = terminal
 		} else {
-			const options: vscode.TerminalOptions = { cwd, name: "Zoo Code", iconPath, env }
+			const options: vscode.TerminalOptions = { cwd, name: "ViraCode", iconPath, env }
 
 			// When the user has chosen a VS Code terminal profile, resolve it to a
 			// shell path/args/env so the integrated terminal uses that shell. When
@@ -45,7 +45,7 @@ export class Terminal extends BaseTerminal {
 				)
 
 				// Preserve profile-specific variables (e.g. locale/PATH), but keep
-				// Zoo Code's shell-integration controls authoritative.
+				// ViraCode's shell-integration controls authoritative.
 				if (profileShell.env) {
 					options.env = { ...profileShell.env, ...env }
 				}
@@ -349,7 +349,7 @@ export class Terminal extends BaseTerminal {
 	/**
 	 * Reads profiles from trusted settings scopes only. Workspace settings are
 	 * intentionally excluded because opening a repository must not allow its
-	 * `.vscode/settings.json` to select an executable for Zoo Code to launch.
+	 * `.vscode/settings.json` to select an executable for ViraCode to launch.
 	 */
 	public static getConfiguredProfiles(platform: NodeJS.Platform = process.platform): Record<string, unknown> {
 		const platformKey = Terminal.getPlatformProfileKey(platform)

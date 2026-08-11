@@ -1,6 +1,6 @@
 {
 	"extension": {
-		"name": "Zoo Code",
+		"name": "ViraCode",
 		"description": "Une équipe complète de développeurs IA dans votre éditeur."
 	},
 	"number_format": {
@@ -151,11 +151,11 @@
 	"warnings": {
 		"no_terminal_content": "Aucun contenu de terminal sélectionné",
 		"missing_task_files": "Les fichiers de cette tâche sont introuvables. Souhaitez-vous la supprimer de la liste des tâches ?",
-		"auto_import_failed": "Échec de l'importation automatique des paramètres ZooCode : {{error}}",
+		"auto_import_failed": "Échec de l'importation automatique des paramètres ViraCode : {{error}}",
 		"rooHistoryImport": {
 			"nothingFound": "Aucun historique de tâches Roo Code trouvé à importer depuis {{domain}}.",
-			"alreadyImported_one": "L'historique de {{count}} tâche Roo Code a déjà été importé dans Zoo Code.",
-			"alreadyImported_other": "Les {{count}} historiques de tâches Roo Code ont déjà été importés dans Zoo Code."
+			"alreadyImported_one": "L'historique de {{count}} tâche Roo Code a déjà été importé dans ViraCode.",
+			"alreadyImported_other": "Les {{count}} historiques de tâches Roo Code ont déjà été importés dans ViraCode."
 		}
 	},
 	"info": {
@@ -165,7 +165,7 @@
 		"custom_storage_path_set": "Chemin de stockage personnalisé défini : {{path}}",
 		"default_storage_path": "Retour au chemin de stockage par défaut",
 		"settings_imported": "Paramètres importés avec succès.",
-		"auto_import_success": "Paramètres ZooCode importés automatiquement depuis {{filename}}",
+		"auto_import_success": "Paramètres ViraCode importés automatiquement depuis {{filename}}",
 		"share_link_copied": "Lien de partage copié dans le presse-papiers",
 		"image_copied_to_clipboard": "URI de données d'image copiée dans le presse-papiers",
 		"image_saved": "Image enregistrée dans {{path}}",
@@ -177,8 +177,8 @@
 			"signInUnavailable": "La connexion à Roo Code Cloud n'est pas disponible pour le moment. Configure un autre fournisseur pour continuer."
 		},
 		"rooHistoryImport": {
-			"success_one": "{{count}} historique de tâche Roo Code importé dans Zoo Code.",
-			"success_other": "{{count}} historiques de tâches Roo Code importés dans Zoo Code."
+			"success_one": "{{count}} historique de tâche Roo Code importé dans ViraCode.",
+			"success_other": "{{count}} historiques de tâches Roo Code importés dans ViraCode."
 		}
 	},
 	"answers": {
@@ -205,12 +205,12 @@
 	},
 	"storage": {
 		"prompt_custom_path": "Entrez le chemin de stockage personnalisé pour l'historique des conversations, laissez vide pour utiliser l'emplacement par défaut",
-		"path_placeholder": "D:\\ZooCodeStorage",
-		"enter_absolute_path": "Veuillez entrer un chemin absolu (ex. D:\\ZooCodeStorage ou /home/user/storage)",
+		"path_placeholder": "D:\\ViraCodeStorage",
+		"enter_absolute_path": "Veuillez entrer un chemin absolu (ex. D:\\ViraCodeStorage ou /home/user/storage)",
 		"enter_valid_path": "Veuillez entrer un chemin valide"
 	},
 	"input": {
-		"task_prompt": "Que doit faire Zoo ?",
+		"task_prompt": "Que doit faire ViraCode ?",
 		"task_placeholder": "Écris ta tâche ici"
 	},
 	"settings": {
@@ -240,8 +240,8 @@
 	},
 	"mdm": {
 		"errors": {
-			"cloud_auth_required": "Votre organisation nécessite une authentification Zoo Code Cloud. Veuillez vous connecter pour continuer.",
-			"organization_mismatch": "Vous devez être authentifié avec le compte Zoo Code Cloud de votre organisation.",
+			"cloud_auth_required": "Votre organisation nécessite une authentification ViraCode Cloud. Veuillez vous connecter pour continuer.",
+			"organization_mismatch": "Vous devez être authentifié avec le compte ViraCode Cloud de votre organisation.",
 			"manual_url_empty": "Veuillez entrer une URL de callback valide",
 			"manual_url_no_query": "URL de callback invalide : paramètres de requête manquants",
 			"manual_url_missing_params": "URL de callback invalide : paramètres requis manquants (code et state)",
@@ -272,18 +272,18 @@
 	},
 	"zooAuth": {
 		"errors": {
-			"invalid_token_received": "Zoo Code: Jeton d'authentification invalide reçu.",
-			"token_verification_failed": "Zoo Code: La vérification du jeton a échoué.",
-			"invalid_token": "Zoo Code: Jeton invalide.",
-			"could_not_verify_token": "Zoo Code: Impossible de vérifier le jeton.",
-			"session_expired": "Session Zoo Code expirée. Reconnectez-vous pour continuer à utiliser Zoo Gateway.",
-			"out_of_credits": "Zoo Gateway : crédits insuffisants. Ajoutez des crédits pour continuer.",
-			"account_unavailable": "Zoo Gateway : votre compte n'est pas disponible actuellement. Contactez le support.",
-			"budget_exceeded": "Zoo Gateway : budget d'utilisation atteint. Attendez la réinitialisation ou rechargez."
+			"invalid_token_received": "ViraCode: Jeton d'authentification invalide reçu.",
+			"token_verification_failed": "ViraCode: La vérification du jeton a échoué.",
+			"invalid_token": "ViraCode: Jeton invalide.",
+			"could_not_verify_token": "ViraCode: Impossible de vérifier le jeton.",
+			"session_expired": "Session ViraCode expirée. Reconnectez-vous pour continuer à utiliser ViraCode Gateway.",
+			"out_of_credits": "ViraCode Gateway : crédits insuffisants. Ajoutez des crédits pour continuer.",
+			"account_unavailable": "ViraCode Gateway : votre compte n'est pas disponible actuellement. Contactez le support.",
+			"budget_exceeded": "ViraCode Gateway : budget d'utilisation atteint. Attendez la réinitialisation ou rechargez."
 		},
 		"info": {
-			"connected": "Zoo Code: Connecté avec succès ! Vous pouvez maintenant utiliser Zoo Code comme fournisseur d'IA.",
-			"disconnected": "Zoo Code: Déconnecté avec succès."
+			"connected": "ViraCode: Connecté avec succès ! Vous pouvez maintenant utiliser ViraCode comme fournisseur d'IA.",
+			"disconnected": "ViraCode: Déconnecté avec succès."
 		},
 		"buttons": {
 			"sign_in": "Se connecter",
@@ -292,9 +292,9 @@
 		}
 	},
 	"codeActions": {
-		"explain": "Expliquer avec Zoo Code",
-		"fix": "Corriger avec Zoo Code",
-		"improve": "Améliorer avec Zoo Code",
-		"addToContext": "Ajouter à Zoo Code"
+		"explain": "Expliquer avec ViraCode",
+		"fix": "Corriger avec ViraCode",
+		"improve": "Améliorer avec ViraCode",
+		"addToContext": "Ajouter à ViraCode"
 	}
 }

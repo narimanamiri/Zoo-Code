@@ -108,50 +108,50 @@ describe("generatePackageJson", () => {
 				},
 			},
 			overrideJson: {
-				name: "zoo-code-nightly",
-				displayName: "Zoo Code Nightly",
-				publisher: "ZooCodeOrganization",
+				name: "viracode-nightly",
+				displayName: "ViraCode Nightly",
+				publisher: "ViraCode",
 				version: "0.0.1",
 				icon: "assets/icons/icon-nightly.png",
 				scripts: {},
 			},
-			substitution: ["roo-cline", "zoo-code-nightly"],
+			substitution: ["roo-cline", "viracode-nightly"],
 		})
 
 		expect(generatedPackageJson).toStrictEqual({
-			name: "zoo-code-nightly",
-			displayName: "Zoo Code Nightly",
+			name: "viracode-nightly",
+			displayName: "ViraCode Nightly",
 			description: "%extension.description%",
-			publisher: "ZooCodeOrganization",
+			publisher: "ViraCode",
 			version: "0.0.1",
 			icon: "assets/icons/icon-nightly.png",
 			contributes: {
 				viewsContainers: {
 					activitybar: [
 						{
-							id: "zoo-code-nightly-ActivityBar",
+							id: "viracode-nightly-ActivityBar",
 							title: "%views.activitybar.title%",
 							icon: "assets/icons/icon.svg",
 						},
 					],
 				},
 				views: {
-					"zoo-code-nightly-ActivityBar": [
+					"viracode-nightly-ActivityBar": [
 						{
 							type: "webview",
-							id: "zoo-code-nightly.SidebarProvider",
+							id: "viracode-nightly.SidebarProvider",
 							name: "",
 						},
 					],
 				},
 				commands: [
 					{
-						command: "zoo-code-nightly.plusButtonClicked",
+						command: "viracode-nightly.plusButtonClicked",
 						title: "%command.newTask.title%",
 						icon: "$(edit)",
 					},
 					{
-						command: "zoo-code-nightly.openInNewTab",
+						command: "viracode-nightly.openInNewTab",
 						title: "%command.openInNewTab.title%",
 						category: "%configuration.title%",
 					},
@@ -159,48 +159,48 @@ describe("generatePackageJson", () => {
 				menus: {
 					"editor/context": [
 						{
-							submenu: "zoo-code-nightly.contextMenu",
+							submenu: "viracode-nightly.contextMenu",
 							group: "navigation",
 						},
 					],
-					"zoo-code-nightly.contextMenu": [
+					"viracode-nightly.contextMenu": [
 						{
-							command: "zoo-code-nightly.addToContext",
+							command: "viracode-nightly.addToContext",
 							group: "1_actions@1",
 						},
 					],
 					"editor/title": [
 						{
-							command: "zoo-code-nightly.plusButtonClicked",
+							command: "viracode-nightly.plusButtonClicked",
 							group: "navigation@1",
-							when: "activeWebviewPanelId == zoo-code-nightly.TabPanelProvider",
+							when: "activeWebviewPanelId == viracode-nightly.TabPanelProvider",
 						},
 						{
-							command: "zoo-code-nightly.settingsButtonClicked",
+							command: "viracode-nightly.settingsButtonClicked",
 							group: "navigation@6",
-							when: "activeWebviewPanelId == zoo-code-nightly.TabPanelProvider",
+							when: "activeWebviewPanelId == viracode-nightly.TabPanelProvider",
 						},
 						{
-							command: "zoo-code-nightly.accountButtonClicked",
+							command: "viracode-nightly.accountButtonClicked",
 							group: "navigation@6",
-							when: "activeWebviewPanelId == zoo-code-nightly.TabPanelProvider",
+							when: "activeWebviewPanelId == viracode-nightly.TabPanelProvider",
 						},
 					],
 				},
 				submenus: [
 					{
-						id: "zoo-code-nightly.contextMenu",
+						id: "viracode-nightly.contextMenu",
 						label: "%views.contextMenu.label%",
 					},
 					{
-						id: "zoo-code-nightly.terminalMenu",
+						id: "viracode-nightly.terminalMenu",
 						label: "%views.terminalMenu.label%",
 					},
 				],
 				configuration: {
 					title: "%configuration.title%",
 					properties: {
-						"zoo-code-nightly.allowedCommands": {
+						"viracode-nightly.allowedCommands": {
 							type: "array",
 							items: {
 								type: "string",
@@ -208,7 +208,7 @@ describe("generatePackageJson", () => {
 							default: ["npm test", "npm install", "tsc", "git log", "git diff", "git show"],
 							description: "%commands.allowedCommands.description%",
 						},
-						"zoo-code-nightly.customStoragePath": {
+						"viracode-nightly.customStoragePath": {
 							type: "string",
 							default: "",
 							description: "%settings.customStoragePath.description%",

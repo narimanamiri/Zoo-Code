@@ -5,7 +5,7 @@ import { ClineProvider } from "../core/webview/ClineProvider"
 import { handleAuthCallback as handleZooCodeAuthCallback, setZooCodeUserInfo } from "../services/zoo-code-auth"
 
 /**
- * Persist the Zoo Code session token to every active provider instance.
+ * Persist the ViraCode session token to every active provider instance.
  *
  * The profile settings write (handleZooCodeCallback) must run on any active
  * instance — not just the visible one — so the zoo-gateway zooSessionToken is

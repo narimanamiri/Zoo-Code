@@ -446,7 +446,7 @@ describe("OpenAiCodexHandler Luna Responses Lite requests", () => {
 			content: [{ type: "input_text", text: "Hello" }],
 		})
 		expect(options.headers).toMatchObject({
-			originator: "zoo-code",
+			originator: "viracode",
 			session_id: "task-luna",
 			"session-id": "task-luna",
 			"x-session-affinity": "task-luna",

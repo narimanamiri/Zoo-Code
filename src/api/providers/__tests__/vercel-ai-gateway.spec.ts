@@ -147,7 +147,7 @@ describe("VercelAiGatewayHandler", () => {
 			apiKey: mockOptions.vercelAiGatewayApiKey,
 			defaultHeaders: expect.objectContaining({
 				"HTTP-Referer": "https://github.com/Zoo-Code-Org/Zoo-Code",
-				"X-Title": "Zoo Code",
+				"X-Title": "ViraCode",
 				"User-Agent": expect.stringContaining("ZooCode/"),
 			}),
 			timeout: expect.any(Number),

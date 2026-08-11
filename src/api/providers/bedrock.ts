@@ -465,7 +465,7 @@ export class AwsBedrockHandler extends BaseProvider implements SingleCompletionH
 			if (isAdaptiveThinkingModel) {
 				// Claude 4.7+ (incl. 4.8 and Fable 5) uses adaptive thinking with effort levels —
 				// budget_tokens causes a 400 error.
-				// display: "summarized" surfaces thinking content in Zoo Code UI.
+				// display: "summarized" surfaces thinking content in ViraCode UI.
 				// effort "xhigh" remains the recommended level for agentic coding tasks
 				// across 4.7, 4.8, and Fable 5 (4.8 changed the API default to "high"
 				// but the models continue to honour "xhigh" for deeper reasoning).
