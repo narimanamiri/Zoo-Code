@@ -184,4 +184,62 @@ describe("documentProjectTool", () => {
 		expect(vi.mocked(digestRepository)).not.toHaveBeenCalled()
 		expect(vi.mocked(buildClusterDocument)).not.toHaveBeenCalled()
 	})
+
+	// Real events arrive tens of seconds apart; these arrive far enough apart to
+	// clear the repaint throttle, which is the only timing the tool cares about.
+	const settle = () => new Promise((resolve) => setTimeout(resolve, 200))
+
+	it("draws a progress bar in one row that rewrites itself", async () => {
+		// The cluster reports where it has got to; the tool paints it.
+		vi.mocked(buildClusterDocument).mockImplementation(async (_creds, _request, onProgress) => {
+			onProgress?.({ percent: 8, stage: "outline", message: "Planned 9 sections" })
+			await settle()
+			onProgress?.({ percent: 35, stage: "section", message: "Wrote section 4 of 9" })
+			await settle()
+			onProgress?.({ percent: 100, stage: "done", message: "Document ready" })
+			await settle()
+			return Buffer.alloc(1000, 1)
+		})
+
+		await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
+
+		const said = task.say.mock.calls.filter((call) => call[0] === "text")
+		const partials = said.filter((call) => call[3] === true)
+		const finals = said.filter((call) => call[3] === false)
+		expect(partials.length).toBeGreaterThan(1)
+		expect(finals).toHaveLength(1)
+
+		const painted = partials.map((call) => String(call[1])).join("\n")
+		expect(painted).toContain("Wrote section 4 of 9")
+		expect(painted).toContain("█") // a filled cell
+		expect(painted).toContain("░") // an empty one
+		// Every update is an update, never a new conversation turn.
+		expect(partials.every((call) => call[6]?.isNonInteractive)).toBe(true)
+	})
+
+	it("never lets the bar run backwards when a section is retried", async () => {
+		vi.mocked(buildClusterDocument).mockImplementation(async (_creds, _request, onProgress) => {
+			onProgress?.({ percent: 42, stage: "section", message: "Wrote section 5 of 9" })
+			await settle()
+			onProgress?.({ percent: 35, stage: "retry", message: "Section 5 of 9 came back unusable" })
+			await settle()
+			return Buffer.alloc(10, 1)
+		})
+
+		await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
+
+		const percentages = task.say.mock.calls
+			.filter((call) => call[0] === "text" && call[3] === true)
+			.map((call) => Number(/\*\*(\d+)%\*\*/.exec(String(call[1]))?.[1] ?? 0))
+		expect(percentages).toEqual([...percentages].sort((a, b) => a - b))
+	})
+
+	it("settles the bar when the cluster fails, instead of leaving it mid-stroke", async () => {
+		vi.mocked(buildClusterDocument).mockRejectedValue(new Error("the cluster is down"))
+		await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
+
+		const said = task.say.mock.calls.filter((call) => call[0] === "text")
+		expect(said.at(-1)?.[3]).toBe(false)
+		expect(String(said.at(-1)?.[1])).toContain("the cluster is down")
+	})
 })

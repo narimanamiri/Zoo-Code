@@ -88,6 +88,7 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 		const sourceRoot = path.resolve(task.cwd, sourceRel)
 		const absolutePath = path.resolve(task.cwd, relPath)
 		const isWriteProtected = task.rooProtectedController?.isWriteProtected(relPath) || false
+		let progress: DocumentProgress | undefined
 
 		try {
 			task.consecutiveMistakeCount = 0
@@ -114,23 +115,28 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 				return
 			}
 
-			await task.say(
-				"text",
+			const read =
 				`Read ${digest.fileCount} files (${digest.totalLines.toLocaleString("en-US")} lines) from ` +
-					`${getReadablePath(task.cwd, sourceRel)}. Writing the document on the cluster — a large ` +
-					`project is planned and then written a section at a time, so this takes a few minutes.`,
-			)
+				`${getReadablePath(task.cwd, sourceRel)}.`
+			const bar = new DocumentProgress(task, read)
+			progress = bar
+			await bar.update(0, "Sending the project to the cluster")
 
-			const buffer = await buildClusterDocument(credentials, {
-				format,
-				brief: digestToBrief(digest),
-				// A deck has no appendix worth the page, and the cluster refuses
-				// to append document blocks to slides.
-				appendBlocks: format === "pptx" ? undefined : digestToBlocks(digest),
-				title: params.title?.trim() || undefined,
-				author: authorIsTheAssistant ? undefined : author || undefined,
-				deck: format === "pptx",
-			})
+			const buffer = await buildClusterDocument(
+				credentials,
+				{
+					format,
+					brief: digestToBrief(digest),
+					// A deck has no appendix worth the page, and the cluster refuses
+					// to append document blocks to slides.
+					appendBlocks: format === "pptx" ? undefined : digestToBlocks(digest),
+					title: params.title?.trim() || undefined,
+					author: authorIsTheAssistant ? undefined : author || undefined,
+					deck: format === "pptx",
+				},
+				(event) => bar.report(event),
+			)
+			await bar.finish(`${read} Document written.`)
 
 			await fs.mkdir(path.dirname(absolutePath), { recursive: true })
 			await fs.writeFile(absolutePath, buffer)
@@ -149,6 +155,8 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 			// A refusal from the cluster is a message the user should see whole —
 			// it names what was wrong with the request and what to do instead.
 			const message = error instanceof Error ? error.message : String(error)
+			// The bar stops where it stopped; a row left partial never settles.
+			await progress?.finish(`Documenting stopped: ${message}`)
 			await task.say("error", `document_project: ${message}`)
 			task.didToolFailInCurrentTurn = true
 			pushToolResult(formatResponse.toolError(message))
@@ -161,6 +169,101 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 	override async handlePartial(_task: Task, _block: ToolUse<"document_project">): Promise<void> {
 		return
 	}
+}
+
+const BAR_CELLS = 24
+const PROGRESS_THROTTLE_MS = 150
+
+/**
+ * One chat row that rewrites itself while the cluster writes the document.
+ *
+ * A document takes minutes, and what the user saw for all of them was a
+ * sentence saying it would take a few minutes — indistinguishable from a hung
+ * request. The cluster now reports each stage it reaches, so this draws where
+ * it has got to, in the row it already posted rather than in a new one per
+ * update.
+ *
+ * Partial `say`s only update the last message, so anything that says something
+ * else in between starts a new row. Nothing else in this tool speaks until the
+ * document is finished, which is why it can be this simple.
+ */
+class DocumentProgress {
+	private chain: Promise<void> = Promise.resolve()
+	private percent = 0
+	private lastPaintedAt = 0
+	private readonly startedAt = Date.now()
+	private closed = false
+	private pending: { percent: number; message: string } | undefined
+	private timer: ReturnType<typeof setTimeout> | undefined
+
+	constructor(
+		private readonly task: Task,
+		private readonly preamble: string,
+	) {}
+
+	report(event: { percent: number; message: string }): void {
+		// Never awaited: the stream must not wait on the webview. Two events
+		// inside the throttle window are coalesced rather than dropped — the
+		// later one is the true state, and the bar must end up showing it.
+		this.pending = event
+		if (this.timer || this.closed) {
+			return
+		}
+		const wait = Math.max(0, PROGRESS_THROTTLE_MS - (Date.now() - this.lastPaintedAt))
+		this.timer = setTimeout(() => {
+			this.timer = undefined
+			const next = this.pending
+			this.pending = undefined
+			if (next) {
+				void this.update(next.percent, next.message)
+			}
+		}, wait)
+		this.timer.unref?.()
+	}
+
+	async update(percent: number, message: string): Promise<void> {
+		if (this.closed) {
+			return
+		}
+		this.percent = Math.max(this.percent, Math.min(100, Math.round(percent)))
+		this.lastPaintedAt = Date.now()
+		const text = `${this.preamble}\n\n${bar(this.percent)} **${this.percent}%** — ${message}${elapsed(this.startedAt)}`
+		this.queue(() => this.task.say("text", text, undefined, true, undefined, undefined, { isNonInteractive: true }))
+		await this.chain
+	}
+
+	/** Collapse the row into its final form, so it is not left mid-stroke. */
+	async finish(text: string): Promise<void> {
+		if (this.closed) {
+			return
+		}
+		this.closed = true
+		if (this.timer) {
+			clearTimeout(this.timer)
+			this.timer = undefined
+		}
+		this.queue(() =>
+			this.task.say("text", text, undefined, false, undefined, undefined, { isNonInteractive: true }),
+		)
+		await this.chain
+	}
+
+	private queue(work: () => Promise<unknown>): void {
+		this.chain = this.chain.then(() => work().then(() => undefined)).catch(() => undefined)
+	}
+}
+
+function bar(percent: number): string {
+	const filled = Math.round((BAR_CELLS * Math.max(0, Math.min(100, percent))) / 100)
+	return `\`${"█".repeat(filled)}${"░".repeat(BAR_CELLS - filled)}\``
+}
+
+function elapsed(startedAt: number): string {
+	const seconds = Math.round((Date.now() - startedAt) / 1000)
+	if (seconds < 60) {
+		return ` (${seconds}s)`
+	}
+	return ` (${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s)`
 }
 
 export const documentProjectTool = new DocumentProjectTool()
