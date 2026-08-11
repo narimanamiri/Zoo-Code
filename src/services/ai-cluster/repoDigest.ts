@@ -343,6 +343,30 @@ export function importEdges(files: DigestFile[], texts: Map<string, string>): Di
 	return edges
 }
 
+// Names that say nothing on their own. Every project has a config and a utils,
+// and a diagram whose boxes read config, config, config is a diagram of nothing.
+const GENERIC_MODULES = new Set([
+	"config",
+	"configs",
+	"settings",
+	"utils",
+	"util",
+	"helpers",
+	"common",
+	"base",
+	"core",
+	"types",
+	"constants",
+	"const",
+	"index",
+	"main",
+	"__init__",
+	"mod",
+	"lib",
+	"shared",
+	"misc",
+])
+
 /**
  * The project's own modules and the imports between them, as a diagram.
  *
@@ -360,11 +384,16 @@ export function dependencyDiagram(digest: RepoDigest, maxNodes = 12): SpecBlock 
 		degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1)
 		degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1)
 	}
+	// Ranking purely by how connected a module is puts `config` at the top of
+	// every project ever written, and the reader learns that everything reads
+	// its settings — which they knew. A name that says nothing on its own is
+	// ranked below one that does, so the picture is of what this project is.
+	const weight = (name: string) => {
+		const stem = (name.split("/").pop() || name).toLowerCase()
+		return (degree.get(name) ?? 0) * (GENERIC_MODULES.has(stem) ? 0.35 : 1)
+	}
 	const keep = new Set(
-		[...degree.entries()]
-			.sort((a, b) => b[1] - a[1])
-			.slice(0, maxNodes)
-			.map(([name]) => name),
+		[...degree.keys()].sort((a, b) => weight(b) - weight(a) || a.localeCompare(b)).slice(0, maxNodes),
 	)
 	const kept = edges.filter((edge) => keep.has(edge.from) && keep.has(edge.to))
 	if (kept.length < 2) {
