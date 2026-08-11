@@ -28,7 +28,7 @@ export async function run() {
 		...(aimockUrl && { openRouterBaseUrl: `${aimockUrl}/v1` }),
 	})
 
-	await vscode.commands.executeCommand("zoo-code.SidebarProvider.focus")
+	await vscode.commands.executeCommand("viracode.SidebarProvider.focus")
 	await waitFor(() => api.isReady())
 
 	// Automatically approve completion_result asks so tests don't stall waiting

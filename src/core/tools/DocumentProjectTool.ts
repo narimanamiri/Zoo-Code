@@ -136,7 +136,7 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 				},
 				(event) => bar.report(event),
 			)
-			await bar.finish(`${read} Document written.`)
+			await bar.finish("Document written")
 
 			await fs.mkdir(path.dirname(absolutePath), { recursive: true })
 			await fs.writeFile(absolutePath, buffer)
@@ -156,7 +156,7 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 			// it names what was wrong with the request and what to do instead.
 			const message = error instanceof Error ? error.message : String(error)
 			// The bar stops where it stopped; a row left partial never settles.
-			await progress?.finish(`Documenting stopped: ${message}`)
+			await progress?.finish(`Stopped: ${message}`, false)
 			await task.say("error", `document_project: ${message}`)
 			task.didToolFailInCurrentTurn = true
 			pushToolResult(formatResponse.toolError(message))
@@ -232,16 +232,32 @@ class DocumentProgress {
 		await this.chain
 	}
 
-	/** Collapse the row into its final form, so it is not left mid-stroke. */
-	async finish(text: string): Promise<void> {
+	/**
+	 * Collapse the row into its final form, so it is not left mid-stroke.
+	 *
+	 * The last events arrive in a burst — typesetting, writing the file, done —
+	 * and the document returns while the newest of them is still waiting on the
+	 * repaint timer. Clearing that timer left the bar stopped at 70% with the
+	 * row replaced underneath it: the one number a progress bar has to reach was
+	 * the one it never showed. So the pending state is painted first, and the
+	 * closing line carries a full bar when the document arrived.
+	 */
+	async finish(summary: string, ok = true): Promise<void> {
 		if (this.closed) {
 			return
 		}
-		this.closed = true
 		if (this.timer) {
 			clearTimeout(this.timer)
 			this.timer = undefined
 		}
+		const last = this.pending
+		this.pending = undefined
+		if (last) {
+			await this.update(last.percent, last.message)
+		}
+		this.closed = true
+		const percent = ok ? 100 : this.percent
+		const text = `${this.preamble}\n\n${bar(percent)} **${percent}%** — ${summary}${elapsed(this.startedAt)}`
 		this.queue(() =>
 			this.task.say("text", text, undefined, false, undefined, undefined, { isNonInteractive: true }),
 		)

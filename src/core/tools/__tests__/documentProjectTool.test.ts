@@ -208,6 +208,9 @@ describe("documentProjectTool", () => {
 		const finals = said.filter((call) => call[3] === false)
 		expect(partials.length).toBeGreaterThan(1)
 		expect(finals).toHaveLength(1)
+		// The row that stays on the page shows a finished bar: the last events
+		// arrive together, and the one number the bar has to reach is 100.
+		expect(String(finals[0][1])).toContain("**100%**")
 
 		const painted = partials.map((call) => String(call[1])).join("\n")
 		expect(painted).toContain("Wrote section 4 of 9")
@@ -241,5 +244,7 @@ describe("documentProjectTool", () => {
 		const said = task.say.mock.calls.filter((call) => call[0] === "text")
 		expect(said.at(-1)?.[3]).toBe(false)
 		expect(String(said.at(-1)?.[1])).toContain("the cluster is down")
+		// The bar keeps the percentage it reached rather than claiming 100.
+		expect(String(said.at(-1)?.[1])).not.toContain("**100%**")
 	})
 })

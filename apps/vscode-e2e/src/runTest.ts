@@ -8,6 +8,7 @@ import { LLMock } from "@copilotkit/aimock"
 
 import { addApplyDiffResultFixtures } from "./fixtures/apply-diff"
 import { addDeepSeekV4Fixtures } from "./fixtures/deepseek-v4"
+import { addDocumentProjectFixtures } from "./fixtures/document-project"
 import { addExecuteCommandResultFixtures } from "./fixtures/execute-command"
 import { addFastExitShellRaceResultFixtures } from "./fixtures/fast-exit-shell-race"
 import { addZeroChunkShellRaceResultFixtures } from "./fixtures/zero-chunk-shell-race"
@@ -74,13 +75,21 @@ async function main() {
 
 	let mock: InstanceType<typeof LLMock> | undefined
 
+	// VS Code takes these two as command-line arguments, and a path with a space
+	// in it arrives at the extension host split in half: a checkout under
+	// "E:\my python projects\Zoo-Code" fails with `Cannot find module 'e:\my'`
+	// before a single test runs. E2E_ROOT lets the caller point at the same
+	// checkout through a space-free path (on Windows, a junction:
+	// `mklink /J E:\ZooCode "E:\my python projects\Zoo-Code"`).
+	const repoRoot = process.env.E2E_ROOT ? path.resolve(process.env.E2E_ROOT) : path.resolve(__dirname, "../../..")
+
 	// The folder containing the Extension Manifest package.json
 	// Passed to `--extensionDevelopmentPath`
-	const extensionDevelopmentPath = path.resolve(__dirname, "../../../src")
+	const extensionDevelopmentPath = path.join(repoRoot, "src")
 
 	// The path to the extension test script
 	// Passed to --extensionTestsPath
-	const extensionTestsPath = path.resolve(__dirname, "./suite/index")
+	const extensionTestsPath = path.join(repoRoot, "apps", "vscode-e2e", "out", "suite", "index")
 
 	let testWorkspace: string | undefined
 
@@ -129,6 +138,7 @@ async function main() {
 				addUseMcpToolResultFixtures(mock)
 				addWriteToFileResultFixtures(mock)
 				addDeepSeekV4Fixtures(mock)
+				addDocumentProjectFixtures(mock)
 
 				// The modes test (switch_mode → ask) triggers a second API call whose last
 				// user message starts with <environment_details> directly — no <user_message>
