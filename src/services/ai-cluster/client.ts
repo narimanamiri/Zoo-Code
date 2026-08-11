@@ -90,6 +90,13 @@ export type ClusterDocumentRequest = {
 	timeoutMs?: number
 }
 
+/** Where the cluster has got to. `percent` is 0–100 and never goes backwards. */
+export type ClusterDocumentProgress = {
+	percent: number
+	stage: string
+	message: string
+}
+
 /**
  * Build a document on the cluster and return its bytes.
  *
@@ -104,26 +111,17 @@ export type ClusterDocumentRequest = {
 export async function buildClusterDocument(
 	{ baseUrl, apiKey }: ClusterCredentials,
 	request: ClusterDocumentRequest,
+	onProgress?: (progress: ClusterDocumentProgress) => void,
 ): Promise<Buffer> {
-	const body: Record<string, unknown> = {}
-	if (request.brief) {
-		body.brief = request.brief
-	}
-	if (request.spec) {
-		body.spec = request.spec
-	}
-	if (request.appendBlocks?.length) {
-		body.append_blocks = request.appendBlocks
-	}
-	for (const key of ["lang", "title", "author", "org", "date"] as const) {
-		const value = request[key]
-		if (value) {
-			body[key] = value
+	if (onProgress) {
+		const streamed = await streamClusterDocument({ baseUrl, apiKey }, request, onProgress)
+		if (streamed) {
+			return streamed
 		}
+		// The cluster is an older build with no progress stream. Fall through to
+		// the buffered request rather than failing over something cosmetic.
 	}
-	if (request.deck) {
-		body.deck = true
-	}
+	const body = documentBody(request)
 
 	const response = await axios.post(`${aiClusterOrigin(baseUrl)}/v1/documents/${request.format}?download=1`, body, {
 		headers: { ...headers(apiKey), "Content-Type": "application/json" },
@@ -161,6 +159,139 @@ export async function buildClusterDocument(
 		throw new Error("the cluster returned an empty document")
 	}
 	return buffer
+}
+
+function documentBody(request: ClusterDocumentRequest): Record<string, unknown> {
+	const body: Record<string, unknown> = {}
+	if (request.brief) {
+		body.brief = request.brief
+	}
+	if (request.spec) {
+		body.spec = request.spec
+	}
+	if (request.appendBlocks?.length) {
+		body.append_blocks = request.appendBlocks
+	}
+	for (const key of ["lang", "title", "author", "org", "date"] as const) {
+		const value = request[key]
+		if (value) {
+			body[key] = value
+		}
+	}
+	if (request.deck) {
+		body.deck = true
+	}
+	return body
+}
+
+/**
+ * The same document, asked for as a stream of progress events.
+ *
+ * Writing one takes minutes, and a buffered POST says nothing at all until it
+ * says everything — so the extension could only show a spinner, and a slow
+ * document looked exactly like a dead cluster. Here the cluster reports each
+ * stage as it reaches it and sends the file in the last event.
+ *
+ * Returns null when this cluster does not stream, so the caller can fall back
+ * instead of failing: the progress bar is worth having, not worth an error.
+ */
+async function streamClusterDocument(
+	{ baseUrl, apiKey }: ClusterCredentials,
+	request: ClusterDocumentRequest,
+	onProgress: (progress: ClusterDocumentProgress) => void,
+): Promise<Buffer | null> {
+	const response = await axios.post(
+		`${aiClusterOrigin(baseUrl)}/v1/documents/${request.format}?stream=1`,
+		documentBody(request),
+		{
+			headers: { ...headers(apiKey), "Content-Type": "application/json", Accept: "text/event-stream" },
+			responseType: "stream",
+			// Between events, not for the whole document: the stream is never
+			// quiet for long, so this is a real liveness check rather than the
+			// half-hour ceiling the buffered call has to use.
+			timeout: request.timeoutMs ?? 10 * 60_000,
+			validateStatus: () => true,
+			maxContentLength: 128 * 1024 * 1024,
+			maxBodyLength: 128 * 1024 * 1024,
+		},
+	)
+
+	const contentType = String(response.headers?.["content-type"] ?? "")
+	if (response.status >= 400 || !contentType.includes("text/event-stream")) {
+		response.data?.destroy?.()
+		return null
+	}
+
+	let document: Buffer | null = null
+	let failure: string | null = null
+	let highest = 0
+
+	for await (const frame of sseFrames(response.data as NodeJS.ReadableStream)) {
+		if (frame.event === "progress") {
+			const percent = Number(frame.data?.percent)
+			// Monotonic: a retry reports the percentage of the section it is
+			// redoing, and a bar that jumps backwards reads as a fault.
+			highest = Math.max(highest, Number.isFinite(percent) ? percent : 0)
+			onProgress({
+				percent: highest,
+				stage: String(frame.data?.stage ?? ""),
+				message: String(frame.data?.message ?? ""),
+			})
+		} else if (frame.event === "result") {
+			const encoded = frame.data?.content_base64
+			if (typeof encoded === "string" && encoded.length) {
+				document = Buffer.from(encoded, "base64")
+			}
+		} else if (frame.event === "error") {
+			const detail = (frame.data?.error ?? {}) as { message?: string }
+			failure = detail.message ?? "the cluster could not write the document"
+		}
+	}
+
+	if (failure) {
+		throw new Error(failure)
+	}
+	if (!document?.length) {
+		// The stream ended without the file — a dropped connection, or a
+		// document too large to inline. Neither is worth guessing about.
+		return null
+	}
+	return document
+}
+
+/** An event's payload is whatever the cluster put in it; each reader checks. */
+type SseFrame = { event: string; data: Record<string, unknown> }
+
+/** Server-sent events off a Node stream, one decoded frame at a time. */
+async function* sseFrames(stream: NodeJS.ReadableStream): AsyncGenerator<SseFrame> {
+	let buffer = ""
+	for await (const chunk of stream) {
+		buffer += chunk.toString()
+		let split = buffer.indexOf("\n\n")
+		while (split !== -1) {
+			const raw = buffer.slice(0, split)
+			buffer = buffer.slice(split + 2)
+			split = buffer.indexOf("\n\n")
+
+			let event = "message"
+			const payload: string[] = []
+			for (const line of raw.split("\n")) {
+				if (line.startsWith("event:")) {
+					event = line.slice(6).trim()
+				} else if (line.startsWith("data:")) {
+					payload.push(line.slice(5).trim())
+				}
+			}
+			if (!payload.length) {
+				continue
+			}
+			try {
+				yield { event, data: JSON.parse(payload.join("\n")) }
+			} catch {
+				// A frame we cannot read is one missed bar update, not a failure.
+			}
+		}
+	}
 }
 
 /** One bundled file the list did not inline (binary, or over the size limit). */
