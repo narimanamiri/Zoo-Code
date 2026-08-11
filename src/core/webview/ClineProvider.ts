@@ -1468,7 +1468,7 @@ export class ClineProvider
 						window.AUDIO_BASE_URI = "${audioUri}"
 						window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
 					</script>
-					<title>Zoo Code</title>
+					<title>ViraCode</title>
 				</head>
 				<body>
 					<div id="root"></div>
@@ -1547,7 +1547,7 @@ export class ClineProvider
 				window.AUDIO_BASE_URI = "${audioUri}"
 				window.MATERIAL_ICONS_BASE_URI = "${materialIconsUri}"
 			</script>
-            <title>Zoo Code</title>
+            <title>ViraCode</title>
           </head>
           <body>
             <noscript>You need to enable JavaScript to run this app.</noscript>
@@ -2005,7 +2005,7 @@ export class ClineProvider
 		await this.upsertProviderProfile(currentApiConfigName, newConfiguration)
 	}
 
-	// Zoo Code Auth
+	// ViraCode Auth
 
 	async handleZooCodeCallback(token: string) {
 		// Auth mutation (token storage, subscription check, success toast) was already
@@ -2589,7 +2589,7 @@ export class ClineProvider
 				deviceName: os.hostname(),
 			}
 		} catch {
-			// Keep the default unauthenticated state if the optional Zoo Code auth service is unavailable.
+			// Keep the default unauthenticated state if the optional ViraCode auth service is unavailable.
 		}
 
 		return {
@@ -3201,7 +3201,7 @@ export class ClineProvider
 			return
 		}
 		this.log(
-			`[Zoo Code] Webview hidden during active task.\n` +
+			`[ViraCode] Webview hidden during active task.\n` +
 				`  taskId:       ${task.taskId}\n` +
 				`  messageCount: ${task.clineMessages.length}\n` +
 				`  stackDepth:   ${this.taskRegistry.length}\n` +

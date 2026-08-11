@@ -35,7 +35,7 @@ vi.mock("../i18n", () => ({
 const mockFetch = vi.fn()
 global.fetch = mockFetch as any
 
-describe("zoo-code-auth", () => {
+describe("viracode-auth", () => {
 	let mockSecrets: any
 	let mockContext: any
 
@@ -74,7 +74,7 @@ describe("zoo-code-auth", () => {
 		})
 
 		it("preloads the cached token during initialization", async () => {
-			await mockSecrets.store("zoo-code-session-token", "zoo_ext_cached_token")
+			await mockSecrets.store("viracode-session-token", "zoo_ext_cached_token")
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => ({ valid: true }),
@@ -89,10 +89,10 @@ describe("zoo-code-auth", () => {
 
 	describe("initZooCodeAuth", () => {
 		it("clears stored user info and token when the cached token is invalid", async () => {
-			await mockSecrets.store("zoo-code-session-token", "zoo_ext_stale_token")
-			await mockSecrets.store("zoo-code-user-name", "Jane Doe")
-			await mockSecrets.store("zoo-code-user-email", "jane@example.com")
-			await mockSecrets.store("zoo-code-user-image", "https://example.com/avatar.png")
+			await mockSecrets.store("viracode-session-token", "zoo_ext_stale_token")
+			await mockSecrets.store("viracode-user-name", "Jane Doe")
+			await mockSecrets.store("viracode-user-email", "jane@example.com")
+			await mockSecrets.store("viracode-user-image", "https://example.com/avatar.png")
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => ({ valid: false }),
@@ -110,9 +110,9 @@ describe("zoo-code-auth", () => {
 		})
 
 		it("clears stored user info and token when backend returns HTTP error (invalid token)", async () => {
-			await mockSecrets.store("zoo-code-session-token", "zoo_ext_stale_token")
-			await mockSecrets.store("zoo-code-user-name", "Jane Doe")
-			await mockSecrets.store("zoo-code-user-email", "jane@example.com")
+			await mockSecrets.store("viracode-session-token", "zoo_ext_stale_token")
+			await mockSecrets.store("viracode-user-name", "Jane Doe")
+			await mockSecrets.store("viracode-user-email", "jane@example.com")
 			mockFetch.mockResolvedValueOnce({
 				ok: false,
 				status: 401,
@@ -130,9 +130,9 @@ describe("zoo-code-auth", () => {
 		})
 
 		it("preserves token and user info when the backend is temporarily unreachable", async () => {
-			await mockSecrets.store("zoo-code-session-token", "zoo_ext_valid_token")
-			await mockSecrets.store("zoo-code-user-name", "Jane Doe")
-			await mockSecrets.store("zoo-code-user-email", "jane@example.com")
+			await mockSecrets.store("viracode-session-token", "zoo_ext_valid_token")
+			await mockSecrets.store("viracode-user-name", "Jane Doe")
+			await mockSecrets.store("viracode-user-email", "jane@example.com")
 			// Simulate a network error during verification
 			mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
@@ -143,9 +143,9 @@ describe("zoo-code-auth", () => {
 		})
 
 		it("preserves token and user info when verify returns 5xx (transient backend error)", async () => {
-			await mockSecrets.store("zoo-code-session-token", "zoo_ext_valid_token")
-			await mockSecrets.store("zoo-code-user-name", "Jane Doe")
-			await mockSecrets.store("zoo-code-user-email", "jane@example.com")
+			await mockSecrets.store("viracode-session-token", "zoo_ext_valid_token")
+			await mockSecrets.store("viracode-user-name", "Jane Doe")
+			await mockSecrets.store("viracode-user-email", "jane@example.com")
 			mockFetch.mockResolvedValueOnce({
 				ok: false,
 				status: 503,
@@ -208,7 +208,7 @@ describe("zoo-code-auth", () => {
 
 			expect(success).toBe(false)
 			expect(getCachedZooCodeToken()).toBe("")
-			expect(mockSecrets.store).not.toHaveBeenCalledWith("zoo-code-session-token", "zoo_ext_fake_token")
+			expect(mockSecrets.store).not.toHaveBeenCalledWith("viracode-session-token", "zoo_ext_fake_token")
 		})
 
 		it("persists a token only after backend verification succeeds", async () => {
@@ -222,7 +222,7 @@ describe("zoo-code-auth", () => {
 
 			expect(success).toBe(true)
 			expect(getCachedZooCodeToken()).toBe("zoo_ext_real_token")
-			expect(mockSecrets.store).toHaveBeenCalledWith("zoo-code-session-token", "zoo_ext_real_token")
+			expect(mockSecrets.store).toHaveBeenCalledWith("viracode-session-token", "zoo_ext_real_token")
 		})
 	})
 

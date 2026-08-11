@@ -2893,7 +2893,7 @@ export const webviewMessageHandler = async (
 				await provider.postStateToWebview()
 			} catch (error) {
 				provider.log(
-					`Failed to sign out of Zoo Code: ${error instanceof Error ? error.message : String(error)}`,
+					`Failed to sign out of ViraCode: ${error instanceof Error ? error.message : String(error)}`,
 				)
 			}
 			break

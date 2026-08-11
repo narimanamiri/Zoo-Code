@@ -272,7 +272,7 @@ describe("TelemetryClient", () => {
 			const client = new TelemetryClient(mockAuthService, mockSettingsService)
 
 			const providerProperties = {
-				appName: "zoo-code",
+				appName: "viracode",
 				appVersion: "1.0.0",
 				vscodeVersion: "1.60.0",
 				platform: "darwin",
@@ -317,7 +317,7 @@ describe("TelemetryClient", () => {
 			mockSettingsService.isTaskSyncEnabled.mockReturnValue(true)
 
 			const eventProperties = {
-				appName: "zoo-code",
+				appName: "viracode",
 				appVersion: "1.0.0",
 				vscodeVersion: "1.60.0",
 				platform: "darwin",
@@ -426,7 +426,7 @@ describe("TelemetryClient", () => {
 			const client = new TelemetryClient(mockAuthService, mockSettingsService)
 
 			const providerProperties = {
-				appName: "zoo-code",
+				appName: "viracode",
 				appVersion: "1.0.0",
 				vscodeVersion: "1.60.0",
 				platform: "darwin",

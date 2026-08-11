@@ -1,5 +1,5 @@
 {
-	"greeting": "¡Bienvenido a Zoo Code!",
+	"greeting": "¡Bienvenido a ViraCode!",
 	"task": {
 		"title": "Tarea",
 		"expand": "Expandir tarea",
@@ -98,7 +98,7 @@
 	"enqueueMessage": "Agregar mensaje a la cola (se enviará después de que termine la tarea actual)",
 	"scrollToBottom": "Desplazarse al final del chat",
 	"scrollToLatestCheckpoint": "Desplazarse al checkpoint anterior",
-	"about": "Zoo Code es todo un equipo de desarrollo de IA en tu editor.",
+	"about": "ViraCode es todo un equipo de desarrollo de IA en tu editor.",
 	"docs": "Consulta nuestra <DocsLink>documentación</DocsLink> para saber más.",
 	"onboarding": "Tu lista de tareas en este espacio de trabajo está vacía.",
 	"rooTips": {
@@ -130,7 +130,7 @@
 		"title": "Modos",
 		"marketplace": "Marketplace de Modos",
 		"settings": "Configuración de Modos",
-		"description": "Personalidades especializadas que adaptan el comportamiento de Zoo.",
+		"description": "Personalidades especializadas que adaptan el comportamiento de ViraCode.",
 		"searchPlaceholder": "Buscar modos...",
 		"noResults": "No se encontraron resultados"
 	},
@@ -144,7 +144,7 @@
 	"diffError": {
 		"title": "Edición fallida"
 	},
-	"troubleMessage": "Zoo está teniendo problemas...",
+	"troubleMessage": "ViraCode está teniendo problemas...",
 	"apiRequest": {
 		"title": "Solicitud API",
 		"failed": "Solicitud API falló",
@@ -162,7 +162,7 @@
 			"500": "Error del servidor del proveedor. Algo está mal en el lado del proveedor, no hay nada mal con tu solicitud.",
 			"docs": "Documentación",
 			"goToSettings": "Configuración",
-			"unknown": "Error API desconocido. Contacta con el soporte de Zoo Code.",
+			"unknown": "Error API desconocido. Contacta con el soporte de ViraCode.",
 			"connection": "Error de conexión. Asegúrate de tener una conexión a Internet funcional.",
 			"claudeCodeNotAuthenticated": "Debes iniciar sesión para usar Claude Code. Ve a Configuración y haz clic en \"Iniciar sesión en Claude Code\" para autenticarte."
 		}
@@ -187,43 +187,43 @@
 		"current": "Actual"
 	},
 	"instructions": {
-		"wantsToFetch": "Zoo quiere obtener instrucciones detalladas para ayudar con la tarea actual"
+		"wantsToFetch": "ViraCode quiere obtener instrucciones detalladas para ayudar con la tarea actual"
 	},
 	"fileOperations": {
-		"wantsToRead": "Zoo quiere leer este archivo",
-		"wantsToReadOutsideWorkspace": "Zoo quiere leer este archivo fuera del espacio de trabajo",
-		"didRead": "Zoo leyó este archivo",
-		"wantsToEdit": "Zoo quiere editar este archivo",
-		"wantsToEditOutsideWorkspace": "Zoo quiere editar este archivo fuera del espacio de trabajo",
-		"wantsToEditProtected": "Zoo quiere editar un archivo de configuración protegido",
-		"wantsToCreate": "Zoo quiere crear un nuevo archivo",
-		"wantsToSearchReplace": "Zoo quiere realizar búsqueda y reemplazo en este archivo",
-		"didSearchReplace": "Zoo realizó búsqueda y reemplazo en este archivo",
-		"wantsToInsert": "Zoo quiere insertar contenido en este archivo",
-		"wantsToInsertWithLineNumber": "Zoo quiere insertar contenido en este archivo en la línea {{lineNumber}}",
-		"wantsToInsertAtEnd": "Zoo quiere añadir contenido al final de este archivo",
-		"wantsToReadAndXMore": "Zoo quiere leer este archivo y {{count}} más",
-		"wantsToReadMultiple": "Zoo quiere leer varios archivos",
-		"wantsToApplyBatchChanges": "Zoo quiere aplicar cambios a múltiples archivos",
-		"wantsToGenerateImage": "Zoo quiere generar una imagen",
-		"wantsToGenerateImageOutsideWorkspace": "Zoo quiere generar una imagen fuera del espacio de trabajo",
-		"wantsToGenerateImageProtected": "Zoo quiere generar una imagen en una ubicación protegida",
-		"didGenerateImage": "Zoo generó una imagen"
+		"wantsToRead": "ViraCode quiere leer este archivo",
+		"wantsToReadOutsideWorkspace": "ViraCode quiere leer este archivo fuera del espacio de trabajo",
+		"didRead": "ViraCode leyó este archivo",
+		"wantsToEdit": "ViraCode quiere editar este archivo",
+		"wantsToEditOutsideWorkspace": "ViraCode quiere editar este archivo fuera del espacio de trabajo",
+		"wantsToEditProtected": "ViraCode quiere editar un archivo de configuración protegido",
+		"wantsToCreate": "ViraCode quiere crear un nuevo archivo",
+		"wantsToSearchReplace": "ViraCode quiere realizar búsqueda y reemplazo en este archivo",
+		"didSearchReplace": "ViraCode realizó búsqueda y reemplazo en este archivo",
+		"wantsToInsert": "ViraCode quiere insertar contenido en este archivo",
+		"wantsToInsertWithLineNumber": "ViraCode quiere insertar contenido en este archivo en la línea {{lineNumber}}",
+		"wantsToInsertAtEnd": "ViraCode quiere añadir contenido al final de este archivo",
+		"wantsToReadAndXMore": "ViraCode quiere leer este archivo y {{count}} más",
+		"wantsToReadMultiple": "ViraCode quiere leer varios archivos",
+		"wantsToApplyBatchChanges": "ViraCode quiere aplicar cambios a múltiples archivos",
+		"wantsToGenerateImage": "ViraCode quiere generar una imagen",
+		"wantsToGenerateImageOutsideWorkspace": "ViraCode quiere generar una imagen fuera del espacio de trabajo",
+		"wantsToGenerateImageProtected": "ViraCode quiere generar una imagen en una ubicación protegida",
+		"didGenerateImage": "ViraCode generó una imagen"
 	},
 	"directoryOperations": {
-		"wantsToViewTopLevel": "Zoo quiere ver los archivos de nivel superior en este directorio",
-		"didViewTopLevel": "Zoo vio los archivos de nivel superior en este directorio",
-		"wantsToViewRecursive": "Zoo quiere ver recursivamente todos los archivos en este directorio",
-		"didViewRecursive": "Zoo vio recursivamente todos los archivos en este directorio",
-		"wantsToSearch": "Zoo quiere buscar en este directorio <code>{{regex}}</code>",
-		"didSearch": "Zoo buscó en este directorio <code>{{regex}}</code>",
-		"wantsToSearchOutsideWorkspace": "Zoo quiere buscar en este directorio (fuera del espacio de trabajo) <code>{{regex}}</code>",
-		"didSearchOutsideWorkspace": "Zoo buscó en este directorio (fuera del espacio de trabajo) <code>{{regex}}</code>",
-		"wantsToViewTopLevelOutsideWorkspace": "Zoo quiere ver los archivos de nivel superior en este directorio (fuera del espacio de trabajo)",
-		"didViewTopLevelOutsideWorkspace": "Zoo vio los archivos de nivel superior en este directorio (fuera del espacio de trabajo)",
-		"wantsToViewRecursiveOutsideWorkspace": "Zoo quiere ver recursivamente todos los archivos en este directorio (fuera del espacio de trabajo)",
-		"didViewRecursiveOutsideWorkspace": "Zoo vio recursivamente todos los archivos en este directorio (fuera del espacio de trabajo)",
-		"wantsToViewMultipleDirectories": "Zoo quiere ver varios directorios"
+		"wantsToViewTopLevel": "ViraCode quiere ver los archivos de nivel superior en este directorio",
+		"didViewTopLevel": "ViraCode vio los archivos de nivel superior en este directorio",
+		"wantsToViewRecursive": "ViraCode quiere ver recursivamente todos los archivos en este directorio",
+		"didViewRecursive": "ViraCode vio recursivamente todos los archivos en este directorio",
+		"wantsToSearch": "ViraCode quiere buscar en este directorio <code>{{regex}}</code>",
+		"didSearch": "ViraCode buscó en este directorio <code>{{regex}}</code>",
+		"wantsToSearchOutsideWorkspace": "ViraCode quiere buscar en este directorio (fuera del espacio de trabajo) <code>{{regex}}</code>",
+		"didSearchOutsideWorkspace": "ViraCode buscó en este directorio (fuera del espacio de trabajo) <code>{{regex}}</code>",
+		"wantsToViewTopLevelOutsideWorkspace": "ViraCode quiere ver los archivos de nivel superior en este directorio (fuera del espacio de trabajo)",
+		"didViewTopLevelOutsideWorkspace": "ViraCode vio los archivos de nivel superior en este directorio (fuera del espacio de trabajo)",
+		"wantsToViewRecursiveOutsideWorkspace": "ViraCode quiere ver recursivamente todos los archivos en este directorio (fuera del espacio de trabajo)",
+		"didViewRecursiveOutsideWorkspace": "ViraCode vio recursivamente todos los archivos en este directorio (fuera del espacio de trabajo)",
+		"wantsToViewMultipleDirectories": "ViraCode quiere ver varios directorios"
 	},
 	"commandOutput": "Salida del comando",
 	"commandExecution": {
@@ -247,24 +247,24 @@
 	"response": "Respuesta",
 	"arguments": "Argumentos",
 	"text": {
-		"rooSaid": "Zoo ha dicho"
+		"rooSaid": "ViraCode ha dicho"
 	},
 	"feedback": {
 		"youSaid": "Has dicho"
 	},
 	"mcp": {
-		"wantsToUseTool": "Zoo quiere usar una herramienta en el servidor MCP {{serverName}}",
-		"wantsToAccessResource": "Zoo quiere acceder a un recurso en el servidor MCP {{serverName}}"
+		"wantsToUseTool": "ViraCode quiere usar una herramienta en el servidor MCP {{serverName}}",
+		"wantsToAccessResource": "ViraCode quiere acceder a un recurso en el servidor MCP {{serverName}}"
 	},
 	"modes": {
-		"wantsToSwitch": "Zoo quiere cambiar a modo <code>{{mode}}</code>",
-		"wantsToSwitchWithReason": "Zoo quiere cambiar a modo <code>{{mode}}</code> porque: {{reason}}",
-		"didSwitch": "Zoo cambió a modo <code>{{mode}}</code>",
-		"didSwitchWithReason": "Zoo cambió a modo <code>{{mode}}</code> porque: {{reason}}"
+		"wantsToSwitch": "ViraCode quiere cambiar a modo <code>{{mode}}</code>",
+		"wantsToSwitchWithReason": "ViraCode quiere cambiar a modo <code>{{mode}}</code> porque: {{reason}}",
+		"didSwitch": "ViraCode cambió a modo <code>{{mode}}</code>",
+		"didSwitchWithReason": "ViraCode cambió a modo <code>{{mode}}</code> porque: {{reason}}"
 	},
 	"subtasks": {
-		"wantsToCreate": "Zoo quiere crear una nueva subtarea en modo <code>{{mode}}</code>",
-		"wantsToFinish": "Zoo quiere finalizar esta subtarea",
+		"wantsToCreate": "ViraCode quiere crear una nueva subtarea en modo <code>{{mode}}</code>",
+		"wantsToFinish": "ViraCode quiere finalizar esta subtarea",
 		"newTaskContent": "Instrucciones de la subtarea",
 		"completionContent": "Subtarea completada",
 		"resultContent": "Resultados de la subtarea",
@@ -273,7 +273,7 @@
 		"goToSubtask": "Ver tarea"
 	},
 	"questions": {
-		"hasQuestion": "Zoo tiene una pregunta"
+		"hasQuestion": "ViraCode tiene una pregunta"
 	},
 	"taskCompleted": "Tarea completada",
 	"modelResponseIncomplete": "Respuesta del modelo incompleta",
@@ -289,7 +289,7 @@
 		"copyToClipboard": "Copiar al portapapeles",
 		"copied": "¡Copiado!",
 		"diagnostics": "Obtener información de error detallada",
-		"proxyProvider": "Parece que estás usando un proveedor basado en proxy. Asegúrate de revisar sus registros y de que no está reescribiendo las solicitudes de Zoo."
+		"proxyProvider": "Parece que estás usando un proveedor basado en proxy. Asegúrate de revisar sus registros y de que no está reescribiendo las solicitudes de ViraCode."
 	},
 	"powershell": {
 		"issues": "Parece que estás teniendo problemas con Windows PowerShell, por favor consulta esta"
@@ -332,21 +332,21 @@
 		}
 	},
 	"skill": {
-		"wantsToLoad": "Zoo quiere cargar una habilidad",
-		"didLoad": "Zoo cargó una habilidad"
+		"wantsToLoad": "ViraCode quiere cargar una habilidad",
+		"didLoad": "ViraCode cargó una habilidad"
 	},
 	"followUpSuggest": {
 		"copyToInput": "Copiar a la entrada (o Shift + clic)",
 		"timerPrefix": "Aprobación automática habilitada. Seleccionando en {{seconds}}s…"
 	},
 	"announcement": {
-		"title": "Zoo Code {{version}} publicado",
-		"support": "Apoya a Zoo Code dándonos una estrella en <githubLink>GitHub</githubLink>.",
+		"title": "ViraCode {{version}} publicado",
+		"support": "Apoya a ViraCode dándonos una estrella en <githubLink>GitHub</githubLink>.",
 		"release": {
 			"heading": "Novedades:",
-			"highlight1": "Ejecuta tareas más largas y sin interrupciones con Destructive Command Guard (DCG) — DCG bloquea comandos peligrosos mientras permite que Zoo siga trabajando sin que tengas que pulsar continuamente los botones de aprobación.",
+			"highlight1": "Ejecuta tareas más largas y sin interrupciones con Destructive Command Guard (DCG) — DCG bloquea comandos peligrosos mientras permite que ViraCode siga trabajando sin que tengas que pulsar continuamente los botones de aprobación.",
 			"highlight2": "Mejores controles y fiabilidad de proveedores — elige la velocidad de respuesta de OpenAI Codex, usa configuraciones actualizadas de DeepSeek y mantén las tareas en ejecución aisladas de los cambios de perfil.",
-			"highlight3": "Corrección crítica de ejecución en terminal — Zoo ahora espera a que terminen los comandos del terminal antes de iniciar el siguiente paso."
+			"highlight3": "Corrección crítica de ejecución en terminal — ViraCode ahora espera a que terminen los comandos del terminal antes de iniciar el siguiente paso."
 		},
 		"cloudAgents": {
 			"heading": "Novedades en la Nube:",
@@ -370,24 +370,24 @@
 	"profileViolationWarning": "El perfil actual no es compatible con la configuración de tu organización",
 	"shellIntegration": {
 		"title": "Advertencia de ejecución de comandos",
-		"description": "Tu comando se está ejecutando sin la integración de shell del terminal de VSCode. Para ocultar esta advertencia, puedes desactivar la integración de shell en la sección <strong>Terminal</strong> de la <settingsLink>configuración de Zoo Code</settingsLink> o solucionar los problemas de integración del terminal de VSCode con el enlace de abajo.",
+		"description": "Tu comando se está ejecutando sin la integración de shell del terminal de VSCode. Para ocultar esta advertencia, puedes desactivar la integración de shell en la sección <strong>Terminal</strong> de la <settingsLink>configuración de ViraCode</settingsLink> o solucionar los problemas de integración del terminal de VSCode con el enlace de abajo.",
 		"troubleshooting": "Haz clic aquí para ver la documentación de integración de shell."
 	},
 	"ask": {
 		"autoApprovedRequestLimitReached": {
 			"title": "Límite de Solicitudes Auto-aprobadas Alcanzado",
-			"description": "Zoo ha alcanzado el límite auto-aprobado de {{count}} solicitud(es) API. ¿Deseas reiniciar el contador y continuar con la tarea?",
+			"description": "ViraCode ha alcanzado el límite auto-aprobado de {{count}} solicitud(es) API. ¿Deseas reiniciar el contador y continuar con la tarea?",
 			"button": "Reiniciar y Continuar"
 		},
 		"autoApprovedCostLimitReached": {
 			"title": "Límite de Costo Auto-Aprobado Alcanzado",
-			"description": "Zoo ha alcanzado el límite de costo autoaprobado de ${{count}}. ¿Le gustaría reiniciar el costo y continuar con la tarea?",
+			"description": "ViraCode ha alcanzado el límite de costo autoaprobado de ${{count}}. ¿Le gustaría reiniciar el costo y continuar con la tarea?",
 			"button": "Reiniciar y continuar"
 		}
 	},
 	"codebaseSearch": {
-		"wantsToSearch": "Zoo quiere buscar en la base de código <code>{{query}}</code>",
-		"wantsToSearchWithPath": "Zoo quiere buscar en la base de código <code>{{query}}</code> en <code>{{path}}</code>",
+		"wantsToSearch": "ViraCode quiere buscar en la base de código <code>{{query}}</code>",
+		"wantsToSearchWithPath": "ViraCode quiere buscar en la base de código <code>{{query}}</code> en <code>{{path}}</code>",
 		"didSearch_one": "Se encontró 1 resultado",
 		"didSearch_other": "Se encontraron {{count}} resultados",
 		"resultTooltip": "Puntuación de similitud: {{score}} (haz clic para abrir el archivo)"
@@ -428,7 +428,7 @@
 		"ariaLabel": "Versión {{version}} - Haz clic para ver las notas de la versión"
 	},
 	"rooCloudCTA": {
-		"title": "¡Zoo Code Cloud está evolucionando!",
+		"title": "¡ViraCode Cloud está evolucionando!",
 		"description": "Ejecuta agentes remotos en la nube, accede a tus tareas desde cualquier lugar, colabora con otros y mucho más.",
 		"joinWaitlist": "Regístrate para recibir las últimas actualizaciones."
 	},
@@ -469,8 +469,8 @@
 		"clickToEdit": "Haz clic para editar el mensaje"
 	},
 	"slashCommand": {
-		"wantsToRun": "Zoo quiere ejecutar un comando slash",
-		"didRun": "Zoo ejecutó un comando slash"
+		"wantsToRun": "ViraCode quiere ejecutar un comando slash",
+		"didRun": "ViraCode ejecutó un comando slash"
 	},
 	"todo": {
 		"partial": "{{completed}} de {{total}} tareas pendientes realizadas",
@@ -489,7 +489,7 @@
 		"openMcpSettings": "Abrir configuración de MCP"
 	},
 	"readCommandOutput": {
-		"title": "Zoo read command output"
+		"title": "ViraCode read command output"
 	},
 	"retiredProvider": {
 		"title": "Proveedor ya no compatible",

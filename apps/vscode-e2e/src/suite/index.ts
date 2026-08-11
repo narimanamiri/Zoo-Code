@@ -8,7 +8,7 @@ import { RooCodeEventName, type RooCodeAPI } from "@roo-code/types"
 import { waitFor } from "./utils"
 
 export async function run() {
-	const extension = vscode.extensions.getExtension<RooCodeAPI>("ZooCodeOrganization.zoo-code")
+	const extension = vscode.extensions.getExtension<RooCodeAPI>("ViraCode.viracode")
 
 	if (!extension) {
 		throw new Error("Extension not found")

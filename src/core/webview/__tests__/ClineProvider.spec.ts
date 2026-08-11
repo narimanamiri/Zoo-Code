@@ -614,7 +614,7 @@ describe("ClineProvider", () => {
 		})
 
 		expect(mockWebviewView.webview.html).toContain("<!DOCTYPE html>")
-		expect(mockWebviewView.webview.html).toContain("<title>Zoo Code</title>")
+		expect(mockWebviewView.webview.html).toContain("<title>ViraCode</title>")
 	})
 
 	describe("logWebviewHiddenDiagnostics", () => {
@@ -4432,7 +4432,7 @@ describe("ClineProvider - Comprehensive Edit/Delete Edge Cases", () => {
 		})
 	})
 
-	describe("Zoo Code auth profile sync", () => {
+	describe("ViraCode auth profile sync", () => {
 		beforeEach(async () => {
 			const { getCachedZooCodeToken } = await import("../../../services/zoo-code-auth")
 			vi.mocked(getCachedZooCodeToken).mockReturnValue("")

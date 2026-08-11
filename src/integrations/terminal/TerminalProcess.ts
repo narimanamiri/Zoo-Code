@@ -147,7 +147,7 @@ export class TerminalProcess extends BaseTerminalProcess {
 
 		// Execute command.
 		// Determine whether the active shell is PowerShell so we can apply the
-		// PS-specific counter/sleep workarounds.  Prefer the Zoo Code profile
+		// PS-specific counter/sleep workarounds.  Prefer the ViraCode profile
 		// override (if set) over the VS Code default profile.  Fix for the wrong
 		// config API: must be getConfiguration("terminal.integrated").get(
 		// "defaultProfile.windows"), not the reversed form that always returns null.
@@ -560,8 +560,8 @@ export class TerminalProcess extends BaseTerminalProcess {
 		// fall back to { ... } wrapping (accepts the VSCode zero-chunk bug as a
 		// lesser evil than invoking a non-existent "sh" on Windows).
 		//
-		// Try the Zoo Code profile first; if unset, fall back to the VS Code default
-		// profile so users who haven't configured a Zoo Code profile override still
+		// Try the ViraCode profile first; if unset, fall back to the VS Code default
+		// profile so users who haven't configured a ViraCode profile override still
 		// get the temp-file path instead of { ... } wrapping.
 		let shellExe = Terminal.getProfileShell()?.shellPath
 		if (!shellExe) {

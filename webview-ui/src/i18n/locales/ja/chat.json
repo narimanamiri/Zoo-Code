@@ -1,5 +1,5 @@
 {
-	"greeting": "Zoo Code へようこそ！",
+	"greeting": "ViraCode へようこそ！",
 	"task": {
 		"title": "タスク",
 		"expand": "タスクを展開",
@@ -98,7 +98,7 @@
 	"enqueueMessage": "メッセージをキューに追加（現在のタスク完了後に送信されます）",
 	"scrollToBottom": "チャットの最下部にスクロール",
 	"scrollToLatestCheckpoint": "前のチェックポイントまでスクロール",
-	"about": "Zoo Codeは、エディタに常駐するAI開発チームです。",
+	"about": "ViraCodeは、エディタに常駐するAI開発チームです。",
 	"docs": "詳細については、<DocsLink>ドキュメント</DocsLink>をご確認ください。",
 	"onboarding": "このワークスペースのタスクリストは空です。",
 	"rooTips": {
@@ -162,7 +162,7 @@
 			"500": "プロバイダー サーバー エラー。プロバイダー側に問題があり、リクエスト自体に問題はありません。",
 			"docs": "ドキュメント",
 			"goToSettings": "設定",
-			"unknown": "不明な API エラーです。Zoo Code サポートにお問い合わせください。",
+			"unknown": "不明な API エラーです。ViraCode サポートにお問い合わせください。",
 			"connection": "接続エラー。インターネット接続が機能していることを確認してください。",
 			"claudeCodeNotAuthenticated": "Claude Codeを使用するにはサインインが必要です。設定に移動して「Claude Codeにサインイン」をクリックして認証してください。"
 		}
@@ -202,7 +202,7 @@
 		"wantsToInsert": "Zooはこのファイルにコンテンツを挿入したい",
 		"wantsToInsertWithLineNumber": "Zooはこのファイルの{{lineNumber}}行目にコンテンツを挿入したい",
 		"wantsToInsertAtEnd": "Zooはこのファイルの末尾にコンテンツを追加したい",
-		"wantsToReadAndXMore": "Zoo はこのファイルと他に {{count}} 個のファイルを読み込もうとしています",
+		"wantsToReadAndXMore": "ViraCode はこのファイルと他に {{count}} 個のファイルを読み込もうとしています",
 		"wantsToReadMultiple": "Zooは複数のファイルを読み取ろうとしています",
 		"wantsToApplyBatchChanges": "Zooは複数のファイルに変更を適用したい",
 		"wantsToGenerateImage": "Zooは画像を生成したい",
@@ -223,7 +223,7 @@
 		"didViewTopLevelOutsideWorkspace": "Zooはこのディレクトリ（ワークスペース外）のトップレベルファイルを表示しました",
 		"wantsToViewRecursiveOutsideWorkspace": "Zooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示したい",
 		"didViewRecursiveOutsideWorkspace": "Zooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示しました",
-		"wantsToViewMultipleDirectories": "Zoo は複数のディレクトリを表示したい"
+		"wantsToViewMultipleDirectories": "ViraCode は複数のディレクトリを表示したい"
 	},
 	"commandOutput": "コマンド出力",
 	"commandExecution": {
@@ -340,13 +340,13 @@
 		"timerPrefix": "自動承認が有効です。{{seconds}}秒後に選択中…"
 	},
 	"announcement": {
-		"title": "Zoo Code {{version}} リリース",
-		"support": "<githubLink>GitHub</githubLink>でスターを付けて Zoo Code を応援してください。",
+		"title": "ViraCode {{version}} リリース",
+		"support": "<githubLink>GitHub</githubLink>でスターを付けて ViraCode を応援してください。",
 		"release": {
 			"heading": "新機能:",
-			"highlight1": "Destructive Command Guard（DCG）で長時間のタスクを中断なく実行 — DCG が危険なコマンドをブロックするため、承認ボタンを何度も押さなくても Zoo が作業を続けられます。",
+			"highlight1": "Destructive Command Guard（DCG）で長時間のタスクを中断なく実行 — DCG が危険なコマンドをブロックするため、承認ボタンを何度も押さなくても ViraCode が作業を続けられます。",
 			"highlight2": "プロバイダーの制御と信頼性を向上 — OpenAI Codex の応答速度を選択し、更新された DeepSeek 設定を使用しながら、実行中のタスクをプロファイル変更から分離できます。",
-			"highlight3": "ターミナル実行の重大な問題を修正 — Zoo はターミナルコマンドの完了を待ってから次のステップを開始するようになりました。"
+			"highlight3": "ターミナル実行の重大な問題を修正 — ViraCode はターミナルコマンドの完了を待ってから次のステップを開始するようになりました。"
 		},
 		"cloudAgents": {
 			"heading": "クラウドの新機能:",
@@ -370,7 +370,7 @@
 	"profileViolationWarning": "現在のプロファイルは組織の設定と互換性がありません",
 	"shellIntegration": {
 		"title": "コマンド実行警告",
-		"description": "コマンドはVSCodeターミナルシェル統合なしで実行されています。この警告を非表示にするには、<settingsLink>Zoo Code 設定</settingsLink>の<strong>Terminal</strong>セクションでシェル統合を無効にするか、以下のリンクを使用してVSCodeターミナル統合のトラブルシューティングを行ってください。",
+		"description": "コマンドはVSCodeターミナルシェル統合なしで実行されています。この警告を非表示にするには、<settingsLink>ViraCode 設定</settingsLink>の<strong>Terminal</strong>セクションでシェル統合を無効にするか、以下のリンクを使用してVSCodeターミナル統合のトラブルシューティングを行ってください。",
 		"troubleshooting": "シェル統合のドキュメントはこちらをクリック"
 	},
 	"ask": {
@@ -428,7 +428,7 @@
 		"ariaLabel": "バージョン {{version}} - クリックしてリリースノートを表示"
 	},
 	"rooCloudCTA": {
-		"title": "Zoo Code Cloud が進化中！",
+		"title": "ViraCode Cloud が進化中！",
 		"description": "クラウドでリモートエージェントを実行し、どこからでもタスクにアクセスし、他の人と協力し、その他多くの機能を利用できます。",
 		"joinWaitlist": "最新のアップデートを受け取るためにサインアップしてください。"
 	},

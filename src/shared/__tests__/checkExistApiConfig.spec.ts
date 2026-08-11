@@ -148,7 +148,7 @@ describe("checkExistKey", () => {
 		expect(checkExistKey(config)).toBe(true)
 	})
 
-	it("should return true for zoo-gateway when Zoo Code session auth is active", () => {
+	it("should return true for zoo-gateway when ViraCode session auth is active", () => {
 		const config: ProviderSettings = {
 			apiProvider: "zoo-gateway",
 			zooGatewayModelId: "alibaba/qwen-3.6-max-preview",

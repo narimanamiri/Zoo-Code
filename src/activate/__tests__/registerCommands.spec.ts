@@ -43,7 +43,7 @@ vi.mock("../../core/webview/ClineProvider")
 
 vi.mock("../../shared/package", () => ({
 	Package: {
-		name: "zoo-code",
+		name: "viracode",
 	},
 }))
 
@@ -193,7 +193,7 @@ describe("registerCommands handlers", () => {
 	})
 
 	it("settingsButtonClicked posts both settingsButtonClicked and didBecomeVisible actions", () => {
-		handlers["zoo-code.settingsButtonClicked"]()
+		handlers["viracode.settingsButtonClicked"]()
 
 		expect(mockVisibleProvider.postMessageToWebview).toHaveBeenCalledWith({
 			type: "action",
@@ -209,13 +209,13 @@ describe("registerCommands handlers", () => {
 	it("settingsButtonClicked is a no-op when no visible provider", () => {
 		;(ClineProvider.getVisibleInstance as Mock).mockReturnValue(undefined)
 
-		handlers["zoo-code.settingsButtonClicked"]()
+		handlers["viracode.settingsButtonClicked"]()
 
 		expect(mockVisibleProvider.postMessageToWebview).not.toHaveBeenCalled()
 	})
 
 	it("historyButtonClicked posts historyButtonClicked action", () => {
-		handlers["zoo-code.historyButtonClicked"]()
+		handlers["viracode.historyButtonClicked"]()
 
 		expect(mockVisibleProvider.postMessageToWebview).toHaveBeenCalledWith({
 			type: "action",
@@ -224,7 +224,7 @@ describe("registerCommands handlers", () => {
 	})
 
 	it("marketplaceButtonClicked posts marketplaceButtonClicked action", () => {
-		handlers["zoo-code.marketplaceButtonClicked"]()
+		handlers["viracode.marketplaceButtonClicked"]()
 
 		expect(mockVisibleProvider.postMessageToWebview).toHaveBeenCalledWith({
 			type: "action",
@@ -233,7 +233,7 @@ describe("registerCommands handlers", () => {
 	})
 
 	it("acceptInput posts acceptInput message", () => {
-		handlers["zoo-code.acceptInput"]()
+		handlers["viracode.acceptInput"]()
 
 		expect(mockVisibleProvider.postMessageToWebview).toHaveBeenCalledWith({
 			type: "acceptInput",
@@ -252,7 +252,7 @@ describe("registerCommands handlers", () => {
 		})
 		mockVisibleProvider.postMessageToWebview.mockReturnValueOnce(postPromise)
 
-		const handlerPromise = handlers["zoo-code.toggleAutoApprove"]() as Promise<unknown>
+		const handlerPromise = handlers["viracode.toggleAutoApprove"]() as Promise<unknown>
 		let settled = false
 		void handlerPromise.then(() => {
 			settled = true
@@ -284,7 +284,7 @@ describe("registerCommands handlers", () => {
 		})
 		mockProvider.postMessageToWebview.mockReturnValueOnce(postPromise)
 
-		const handlerPromise = handlers["zoo-code.focusInput"]() as Promise<unknown>
+		const handlerPromise = handlers["viracode.focusInput"]() as Promise<unknown>
 		let settled = false
 		void handlerPromise.then(() => {
 			settled = true
@@ -303,7 +303,7 @@ describe("registerCommands handlers", () => {
 	})
 
 	it("focusInput does not post when no sidebar panel is active", async () => {
-		await handlers["zoo-code.focusInput"]()
+		await handlers["viracode.focusInput"]()
 
 		expect(mockProvider.postMessageToWebview).not.toHaveBeenCalled()
 	})
@@ -317,10 +317,10 @@ describe("registerCommands handlers", () => {
 	// remain unambiguous; the prefix is per-handler, not per-call (both of
 	// settingsButtonClicked's posts share the same prefix).
 	it.each([
-		{ command: "zoo-code.settingsButtonClicked", prefix: "settingsButtonClicked", expectedCalls: 2 },
-		{ command: "zoo-code.historyButtonClicked", prefix: "historyButtonClicked", expectedCalls: 1 },
-		{ command: "zoo-code.marketplaceButtonClicked", prefix: "marketplaceButtonClicked", expectedCalls: 1 },
-		{ command: "zoo-code.acceptInput", prefix: "acceptInput", expectedCalls: 1 },
+		{ command: "viracode.settingsButtonClicked", prefix: "settingsButtonClicked", expectedCalls: 2 },
+		{ command: "viracode.historyButtonClicked", prefix: "historyButtonClicked", expectedCalls: 1 },
+		{ command: "viracode.marketplaceButtonClicked", prefix: "marketplaceButtonClicked", expectedCalls: 1 },
+		{ command: "viracode.acceptInput", prefix: "acceptInput", expectedCalls: 1 },
 	])(
 		"$command logs to outputChannel when postMessageToWebview rejects",
 		async ({ command, prefix, expectedCalls }) => {
@@ -349,7 +349,7 @@ describe("registerCommands handlers", () => {
 		mockVisibleProvider.postMessageToWebview.mockReset()
 		mockVisibleProvider.postMessageToWebview.mockRejectedValue(boom)
 
-		await handlers["zoo-code.toggleAutoApprove"]()
+		await handlers["viracode.toggleAutoApprove"]()
 
 		expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(1)
 		expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
@@ -363,7 +363,7 @@ describe("registerCommands handlers", () => {
 		;(mockVisibleProvider as any).evictCurrentTask = evictCurrentTask
 		;(mockVisibleProvider as any).refreshWorkspace = refreshWorkspace
 
-		await handlers["zoo-code.plusButtonClicked"]()
+		await handlers["viracode.plusButtonClicked"]()
 
 		expect(evictCurrentTask).toHaveBeenCalledTimes(1)
 	})
@@ -372,7 +372,7 @@ describe("registerCommands handlers", () => {
 		;(ClineProvider.getVisibleInstance as Mock).mockReturnValue(undefined)
 
 		// Should not throw even with no visible provider
-		await handlers["zoo-code.plusButtonClicked"]()
+		await handlers["viracode.plusButtonClicked"]()
 	})
 })
 
@@ -411,12 +411,12 @@ describe("openClineInNewTab", () => {
 		setPanel(undefined, "tab")
 	})
 
-	it("creates a webview panel with title 'Zoo Code'", async () => {
+	it("creates a webview panel with title 'ViraCode'", async () => {
 		await openClineInNewTab({ context: mockContext, outputChannel: mockOutputChannel })
 
 		expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-			"zoo-code.TabPanelProvider",
-			"Zoo Code",
+			"viracode.TabPanelProvider",
+			"ViraCode",
 			expect.any(Number),
 			expect.objectContaining({
 				enableScripts: true,

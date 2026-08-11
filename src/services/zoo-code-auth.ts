@@ -2,10 +2,10 @@ import * as vscode from "vscode"
 
 import { t } from "../i18n"
 
-const ZOO_CODE_TOKEN_KEY = "zoo-code-session-token"
-const ZOO_CODE_USER_NAME_KEY = "zoo-code-user-name"
-const ZOO_CODE_USER_EMAIL_KEY = "zoo-code-user-email"
-const ZOO_CODE_USER_IMAGE_KEY = "zoo-code-user-image"
+const ZOO_CODE_TOKEN_KEY = "viracode-session-token"
+const ZOO_CODE_USER_NAME_KEY = "viracode-user-name"
+const ZOO_CODE_USER_EMAIL_KEY = "viracode-user-email"
+const ZOO_CODE_USER_IMAGE_KEY = "viracode-user-image"
 
 let secretStorage: vscode.SecretStorage | undefined
 

@@ -1,7 +1,7 @@
 // cd src && npx vitest run core/task/__tests__/Task.resume-eviction-race.spec.ts
 //
 // Regression anchor for the "Work #1 (no message)" title-clobber bug
-// (Zoo Code v3.76.0, Discord report 2026-08-06).
+// (ViraCode v3.76.0, Discord report 2026-08-06).
 //
 // Root cause: resumeTaskFromHistory() starts with an async disk read. Until
 // that read resolves, clineMessages is []. evictCurrentTask() calls

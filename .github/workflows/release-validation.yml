@@ -40,7 +40,7 @@ jobs:
                   publisher=$(node -p "require('./src/package.json').publisher")
 
                   test "$package_name" = "zoo-code"
-                  test "$publisher" = "ZooCodeOrganization"
+                  test "$publisher" = "ViraCode"
 
             - name: Validate release metadata
               run: |
@@ -89,4 +89,4 @@ jobs:
                   artifact_publisher=$(unzip -p "$vsix_path" extension/package.json | jq -r '.publisher')
 
                   test "$artifact_name" = "zoo-code"
-                  test "$artifact_publisher" = "ZooCodeOrganization"
+                  test "$artifact_publisher" = "ViraCode"

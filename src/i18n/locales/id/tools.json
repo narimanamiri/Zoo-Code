@@ -6,10 +6,10 @@
 		"imageTooLarge": "File gambar terlalu besar ({{size}} MB). Ukuran maksimum yang diizinkan adalah {{max}} MB.",
 		"imageWithSize": "File gambar ({{size}} KB)"
 	},
-	"toolRepetitionLimitReached": "Zoo tampaknya terjebak dalam loop, mencoba aksi yang sama ({{toolName}}) berulang kali. Ini mungkin menunjukkan masalah dengan strategi saat ini. Pertimbangkan untuk mengubah frasa tugas, memberikan instruksi yang lebih spesifik, atau mengarahkannya ke pendekatan yang berbeda.",
-	"unknownToolError": "Zoo mencoba menggunakan alat yang tidak dikenal: \"{{toolName}}\". Mencoba lagi...",
-	"missingToolParameter": "Zoo mencoba menggunakan {{toolName}} tanpa nilai untuk parameter wajib '{{paramName}}'. Mencoba lagi...",
-	"missingToolParameterWithPath": "Zoo mencoba menggunakan {{toolName}} untuk '{{relPath}}' tanpa nilai untuk parameter wajib '{{paramName}}'. Mencoba lagi...",
+	"toolRepetitionLimitReached": "ViraCode tampaknya terjebak dalam loop, mencoba aksi yang sama ({{toolName}}) berulang kali. Ini mungkin menunjukkan masalah dengan strategi saat ini. Pertimbangkan untuk mengubah frasa tugas, memberikan instruksi yang lebih spesifik, atau mengarahkannya ke pendekatan yang berbeda.",
+	"unknownToolError": "ViraCode mencoba menggunakan alat yang tidak dikenal: \"{{toolName}}\". Mencoba lagi...",
+	"missingToolParameter": "ViraCode mencoba menggunakan {{toolName}} tanpa nilai untuk parameter wajib '{{paramName}}'. Mencoba lagi...",
+	"missingToolParameterWithPath": "ViraCode mencoba menggunakan {{toolName}} untuk '{{relPath}}' tanpa nilai untuk parameter wajib '{{paramName}}'. Mencoba lagi...",
 	"codebaseSearch": {
 		"approval": "Mencari '{{query}}' di codebase..."
 	},
@@ -38,7 +38,7 @@
 		"invalidImageFormat": "Format gambar tidak valid diterima",
 		"unknownError": "Terjadi kesalahan yang tidak diketahui",
 		"roo": {
-			"authRequired": "Autentikasi Zoo Code Cloud diperlukan untuk menghasilkan gambar. Silakan masuk ke Zoo Code Cloud."
+			"authRequired": "Autentikasi ViraCode Cloud diperlukan untuk menghasilkan gambar. Silakan masuk ke ViraCode Cloud."
 		}
 	}
 }
