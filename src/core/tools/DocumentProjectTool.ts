@@ -173,6 +173,9 @@ export class DocumentProjectTool extends BaseTool<"document_project"> {
 
 const BAR_CELLS = 24
 const PROGRESS_THROTTLE_MS = 150
+// Slow enough not to be noise in the transcript, often enough that the wait
+// visibly ticks: the cluster's own stages can be minutes apart.
+const HEARTBEAT_MS = 15_000
 
 /**
  * One chat row that rewrites itself while the cluster writes the document.
@@ -195,11 +198,35 @@ class DocumentProgress {
 	private closed = false
 	private pending: { percent: number; message: string } | undefined
 	private timer: ReturnType<typeof setTimeout> | undefined
+	private heartbeat: ReturnType<typeof setInterval> | undefined
+	private message = ""
 
 	constructor(
 		private readonly task: Task,
 		private readonly preamble: string,
 	) {}
+
+	/**
+	 * Keep the elapsed time moving between events.
+	 *
+	 * Documenting a real project from a cold model, the first stage took three
+	 * and a half minutes, and for all of it the row read "2% — Sent the brief to
+	 * the cluster (0s)". A bar that has not moved for three minutes is
+	 * indistinguishable from one that never will; the clock at least says the
+	 * wait is still being served.
+	 */
+	private beat(): void {
+		if (this.heartbeat) {
+			clearInterval(this.heartbeat)
+		}
+		this.heartbeat = setInterval(() => {
+			if (this.closed || this.pending) {
+				return
+			}
+			void this.update(this.percent, this.message)
+		}, HEARTBEAT_MS)
+		this.heartbeat.unref?.()
+	}
 
 	report(event: { percent: number; message: string }): void {
 		// Never awaited: the stream must not wait on the webview. Two events
@@ -226,7 +253,9 @@ class DocumentProgress {
 			return
 		}
 		this.percent = Math.max(this.percent, Math.min(100, Math.round(percent)))
+		this.message = message
 		this.lastPaintedAt = Date.now()
+		this.beat()
 		const text = `${this.preamble}\n\n${bar(this.percent)} **${this.percent}%** — ${message}${elapsed(this.startedAt)}`
 		this.queue(() => this.task.say("text", text, undefined, true, undefined, undefined, { isNonInteractive: true }))
 		await this.chain
@@ -249,6 +278,10 @@ class DocumentProgress {
 		if (this.timer) {
 			clearTimeout(this.timer)
 			this.timer = undefined
+		}
+		if (this.heartbeat) {
+			clearInterval(this.heartbeat)
+			this.heartbeat = undefined
 		}
 		const last = this.pending
 		this.pending = undefined
