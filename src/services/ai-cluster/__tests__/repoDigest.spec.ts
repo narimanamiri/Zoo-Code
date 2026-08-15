@@ -325,4 +325,32 @@ describe("usage surface", () => {
 			await fs.rm(quiet, { recursive: true, force: true })
 		}
 	})
+	it("leaves a bundled project's command line out of the manual", async () => {
+		// A real workspace had a llama.cpp checkout copied in under train/gguf:
+		// 137 of its 217 files, and the command table filled up with that
+		// toolchain's flags instead of the project's own subcommands.
+		const bundled = await fs.mkdtemp(path.join(os.tmpdir(), "digest-vendored-"))
+		try {
+			const write = async (relative: string, content: string) => {
+				const full = path.join(bundled, relative)
+				await fs.mkdir(path.dirname(full), { recursive: true })
+				await fs.writeFile(full, content, "utf8")
+			}
+			await write("app/cli.py", "import argparse\nap = argparse.ArgumentParser()\nap.add_argument('--own')\n")
+			await write("train/gguf/tool/LICENSE", "MIT")
+			await write(
+				"train/gguf/tool/convert.py",
+				"import argparse\nap = argparse.ArgumentParser()\nap.add_argument('--theirs')\n",
+			)
+
+			const digest = await digestRepository(bundled)
+			const flags = digest.usage.commands.flatMap((file) => file.flags.map((flag) => flag.name))
+			expect(flags).toContain("--own")
+			expect(flags).not.toContain("--theirs")
+			// It is still in the repository, so it is still in the inventory.
+			expect(digest.files.map((file) => file.path)).toContain("train/gguf/tool/convert.py")
+		} finally {
+			await fs.rm(bundled, { recursive: true, force: true })
+		}
+	})
 })
