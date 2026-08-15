@@ -27,6 +27,7 @@ const digest = {
 	configs: [],
 	imports: [{ from: "src/a", to: "src/b" }],
 	usage: { entryPoints: [], commands: [], routes: [], env: [] },
+	vendored: [],
 }
 
 /**
