@@ -50,6 +50,11 @@ const SKIP_DIRS = new Set([
 	"vendor",
 	".terraform",
 	"bower_components",
+	// Conventional homes for code that came from somewhere else.
+	"third_party",
+	"thirdparty",
+	"external",
+	"submodules",
 	".turbo",
 	".changeset",
 ])
@@ -725,14 +730,48 @@ function declaredCommands(relative: string, text: string): Array<{ name: string;
 	return out.slice(0, 40)
 }
 
-export function usageSurface(files: DigestFile[], texts: Map<string, string>): DigestUsage {
+/**
+ * Directories holding somebody else's project, by their own licence.
+ *
+ * A real workspace had a llama.cpp checkout copied in under train/gguf: 137 of
+ * its 217 files, and the manual's command table filled up with gguf-py's flags
+ * rather than the project's own eight subcommands. A directory below the root
+ * that ships its own LICENSE is a bundled project, and its command line is not
+ * this project's command line. The files stay in the inventory — they really
+ * are in the repository — but they are not what a user manual is about.
+ */
+const LICENCE_NAMES = new Set(["license", "license.md", "license.txt", "licence", "licence.md", "copying"])
+
+function vendoredRoots(files: DigestFile[], marked: Iterable<string> = []): string[] {
+	const roots = new Set<string>(marked)
+	for (const file of files) {
+		const parts = file.path.split("/")
+		if (parts.length < 2) {
+			continue // the root's own licence says nothing about a subtree
+		}
+		if (LICENCE_NAMES.has(parts[parts.length - 1].toLowerCase())) {
+			roots.add(parts.slice(0, -1).join("/") + "/")
+		}
+	}
+	return [...roots]
+}
+
+export function usageSurface(
+	files: DigestFile[],
+	texts: Map<string, string>,
+	marked: Iterable<string> = [],
+): DigestUsage {
 	const entryPoints: DigestUsage["entryPoints"] = []
 	const commands: DigestUsage["commands"] = []
 	const routes: DigestUsage["routes"] = []
 	const env = new Map<string, string[]>()
 	const defaults = new Map<string, string>()
 
+	const vendored = vendoredRoots(files, marked)
 	for (const file of files) {
+		if (vendored.some((root) => file.path.startsWith(root))) {
+			continue
+		}
 		const text = texts.get(file.path) ?? ""
 		const suffix = path.extname(file.path).toLowerCase()
 		const base = path.basename(file.path).toLowerCase()
@@ -780,6 +819,10 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 	const byDirectory = new Map<string, DigestDirectory>()
 	let totalLines = 0
 	let truncated = false
+	// A licence file has no extension and is not quotable configuration, so the
+	// walk never keeps one — and the rule that spots a bundled project by its
+	// licence had nothing to look at. Noted here, while the directory is open.
+	const vendoredDirs = new Set<string>()
 
 	const walk = async (directory: string): Promise<void> => {
 		if (truncated) {
@@ -792,6 +835,10 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 			return
 		}
 		entries.sort((a, b) => a.name.localeCompare(b.name))
+		const here = path.relative(root, directory).split(path.sep).join("/")
+		if (here && entries.some((entry) => entry.isFile() && LICENCE_NAMES.has(entry.name.toLowerCase()))) {
+			vendoredDirs.add(here + "/")
+		}
 		for (const entry of entries) {
 			if (truncated) {
 				return
@@ -865,7 +912,7 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 
 	await walk(root)
 	const imports = importEdges(files, texts)
-	const usage = usageSurface(files, texts)
+	const usage = usageSurface(files, texts, vendoredDirs)
 	files.sort((a, b) => b.lines - a.lines)
 
 	return {
