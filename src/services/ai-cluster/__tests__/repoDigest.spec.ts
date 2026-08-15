@@ -235,3 +235,94 @@ describe("headerComment", () => {
 		expect(headerComment("const x = 1\n", ".ts")).toBe("")
 	})
 })
+
+describe("usage surface", () => {
+	/**
+	 * The gap this covers cost a real document its manual: the extension's digest
+	 * described every module of a project whose server has three flags and two
+	 * endpoints, and the brief mentioned none of them — so the cluster had
+	 * nothing to write the user-manual sections from.
+	 */
+	let usageRoot: string
+
+	beforeAll(async () => {
+		usageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "digest-usage-"))
+		const write = async (relative: string, content: string) => {
+			const full = path.join(usageRoot, relative)
+			await fs.mkdir(path.dirname(full), { recursive: true })
+			await fs.writeFile(full, content, "utf8")
+		}
+		await write(
+			"serve.py",
+			[
+				'"""Minimal OpenAI-compatible server."""',
+				"import argparse, os",
+				"from fastapi import FastAPI",
+				"app = FastAPI()",
+				"PORT = int(os.environ.get('SERVE_PORT', '1236'))",
+				"KEY = os.getenv('SERVE_KEY')",
+				'@app.get("/v1/models")',
+				"def models():",
+				"    return []",
+				'@app.post("/v1/chat/completions")',
+				"def chat(req):",
+				"    return {}",
+				"def main():",
+				"    ap = argparse.ArgumentParser()",
+				"    ap.add_argument('--base', help='base model to load')",
+				"    ap.add_argument('--port', help='port to listen on')",
+				"    return ap.parse_args()",
+				"if __name__ == '__main__':",
+				"    main()",
+			].join("\n"),
+		)
+		await write("package.json", JSON.stringify({ name: "depot", scripts: { start: "node serve.js" } }))
+	})
+
+	afterAll(async () => {
+		await fs.rm(usageRoot, { recursive: true, force: true })
+	})
+
+	it("finds the entry point, the flags, the endpoints and the settings", async () => {
+		const digest = await digestRepository(usageRoot)
+
+		expect(digest.usage.entryPoints.map((entry) => entry.path)).toContain("serve.py")
+		const flags = digest.usage.commands.flatMap((file) => file.flags.map((flag) => flag.name))
+		expect(flags).toEqual(expect.arrayContaining(["--base", "--port"]))
+		expect(digest.usage.commands.flatMap((file) => file.commands.map((c) => c.name))).toContain("npm run start")
+
+		const routes = digest.usage.routes.map((route) => `${route.method} ${route.path}`)
+		expect(routes).toEqual(expect.arrayContaining(["GET /v1/models", "POST /v1/chat/completions"]))
+
+		const settings = Object.fromEntries(digest.usage.env.map((entry) => [entry.name, entry.default]))
+		expect(settings).toHaveProperty("SERVE_PORT", "1236")
+		expect(settings).toHaveProperty("SERVE_KEY")
+	})
+
+	it("puts it in the brief under the headings the cluster looks for", async () => {
+		const brief = digestToBrief(await digestRepository(usageRoot))
+
+		// The cluster keys its user-manual sections off this exact heading.
+		expect(brief).toContain("HOW THE PROJECT IS RUN AND WHAT IT ACCEPTS")
+		expect(brief).toContain("COMMANDS AND OPTIONS")
+		expect(brief).toContain("HTTP ENDPOINTS SERVED")
+		expect(brief).toContain("ENVIRONMENT VARIABLES READ")
+		expect(brief).toContain("option --base — base model to load")
+		expect(brief).toContain("/v1/chat/completions")
+		expect(brief).toContain("SERVE_PORT")
+		// And the closing instruction asks for the manual, counting what it has.
+		expect(brief).toMatch(/user-manual sections have to account for all of them/)
+	})
+
+	it("says nothing at all about usage when the project offers none", async () => {
+		const quiet = await fs.mkdtemp(path.join(os.tmpdir(), "digest-quiet-"))
+		try {
+			await fs.writeFile(path.join(quiet, "lib.py"), '"""A library."""\ndef helper():\n    return 1\n', "utf8")
+			const brief = digestToBrief(await digestRepository(quiet))
+			expect(brief).not.toContain("HOW THE PROJECT IS RUN")
+			expect(brief).toContain("lists no commands or endpoints")
+		} finally {
+			await fs.rm(quiet, { recursive: true, force: true })
+		}
+	})
+})
