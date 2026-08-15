@@ -247,4 +247,29 @@ describe("documentProjectTool", () => {
 		// The bar keeps the percentage it reached rather than claiming 100.
 		expect(String(said.at(-1)?.[1])).not.toContain("**100%**")
 	})
+	it("keeps the clock moving while the cluster is quiet", async () => {
+		// The first stage of a real document took three and a half minutes. The
+		// bar cannot advance during that, but a row frozen at "(0s)" reads as a
+		// hung request, so the elapsed time ticks on its own.
+		vi.useFakeTimers()
+		try {
+			vi.mocked(buildClusterDocument).mockImplementation(async (_creds, _request, onProgress) => {
+				onProgress?.({ percent: 2, stage: "start", message: "Sent the brief to the cluster" })
+				await vi.advanceTimersByTimeAsync(46_000)
+				return Buffer.alloc(10, 1)
+			})
+
+			await run({ path: "a.docx", source: null, title: null, author: null }, task, callbacks)
+
+			const beats = task.say.mock.calls
+				.filter((call) => call[0] === "text" && call[3] === true)
+				.map((call) => String(call[1]))
+				.filter((text) => text.includes("Sent the brief to the cluster"))
+			// One for the event, then one every fifteen seconds it stayed quiet.
+			expect(beats.length).toBeGreaterThan(2)
+			expect(beats.at(-1)).toMatch(/\((\d+s|\dm \d+s)\)/)
+		} finally {
+			vi.useRealTimers()
+		}
+	})
 })
