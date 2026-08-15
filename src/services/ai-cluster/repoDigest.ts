@@ -220,6 +220,27 @@ export type DigestDirectory = {
 
 export type DigestEdge = { from: string; to: string }
 
+/**
+ * What the project offers someone who wants to *use* it.
+ *
+ * Kept apart from the file inventory because it answers a different question.
+ * The inventory says what the code is; this says what it does when you run it —
+ * and without it the documents described every module of a project and never
+ * said how to start it, because nothing in the material could have told the
+ * writer. Mirrors usage_surface in tools/repo_digest/repo_digest.py; the
+ * headings below are what the cluster keys its user-manual sections off.
+ */
+export type DigestUsage = {
+	entryPoints: Array<{ path: string; purpose: string }>
+	commands: Array<{
+		path: string
+		commands: Array<{ name: string; help: string }>
+		flags: Array<{ name: string; help: string }>
+	}>
+	routes: Array<{ method: string; path: string; handler: string; file: string }>
+	env: Array<{ name: string; usedIn: string[]; default: string }>
+}
+
 export type RepoDigest = {
 	name: string
 	root: string
@@ -231,6 +252,8 @@ export type RepoDigest = {
 	configs: Array<{ path: string; text: string; clipped: boolean }>
 	/** Edges between the project's own modules, from the imports in the code. */
 	imports: DigestEdge[]
+	/** Entry points, commands, endpoints and settings — the manual's material. */
+	usage: DigestUsage
 }
 
 /** Blocks the caller already holds as fact, typeset verbatim by the cluster. */
@@ -506,6 +529,250 @@ async function readTextFile(fullPath: string): Promise<string | undefined> {
 }
 
 /** Walk the project and read everything in it that is text. */
+const ENTRY_MAIN = /^if\s+__name__\s*==\s*['"]__main__['"]/m
+const ARG_FLAG = /add_argument\(\s*['"](--?[\w-]+)['"]([\s\S]*?)\)/g
+const ARG_HELP = /help\s*=\s*['"]([^'"]{3,160})['"]/
+const ARG_SUB = /add_parser\(\s*['"]([\w:.-]+)['"]([\s\S]*?)\)/g
+const CLICK = /@(?:\w+\.)?(?:command|group)\(\s*(?:['"]([\w:.-]+)['"])?/g
+const ROUTE_DECORATOR = /@(\w+)\.(get|post|put|patch|delete|route|websocket)\(\s*['"]([^'"]+)['"]/g
+const ROUTE_DJANGO = /(?:^|\s)(?:re_)?path\(\s*(?:r?['"])([^'"]*)['"]\s*,\s*([\w.]+)/gm
+const ROUTE_EXPRESS = /\b(?:app|router)\.(get|post|put|patch|delete|use)\(\s*['"`]([^'"`]+)['"`]/g
+const ENV_PY =
+	/(?:os\.environ(?:\.get)?\(?\s*\[?\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.getenv\(\s*['"]([A-Z][A-Z0-9_]{2,})['"])/g
+const ENV_JS = /process\.env(?:\.([A-Z][A-Z0-9_]{2,})|\[['"]([A-Z][A-Z0-9_]{2,})['"]\])/g
+const ENV_SH = /\$\{?([A-Z][A-Z0-9_]{3,})\}?/g
+// A quoted literal, a number or a boolean. An expression is not a default
+// anyone can be told to type.
+const ENV_DEFAULT =
+	/(?:os\.environ\.get|os\.getenv)\(\s*['"]([A-Z][A-Z0-9_]{2,})['"]\s*,\s*(['"][^'"]{0,60}['"]|\d[\d._]*|True|False)/g
+const MAKE_TARGET = /^([a-zA-Z][\w.-]*):(?!=)/gm
+const COMPOSE_SERVICE = /^ {2}([a-z][\w-]*):\s*$/gm
+
+const each = (pattern: RegExp, text: string): RegExpExecArray[] => {
+	const scanner = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g")
+	const out: RegExpExecArray[] = []
+	let match: RegExpExecArray | null
+	while ((match = scanner.exec(text)) !== null) {
+		out.push(match)
+		if (out.length > 400) {
+			break
+		}
+	}
+	return out
+}
+
+const ARG_REQUIRED = /required\s*=\s*True/
+const ARG_TYPE = /type\s*=\s*(\w+)/
+const ARG_DEFAULT = /default\s*=\s*("[^"]*"|'[^']*'|[\w.+-]+)/
+
+/**
+ * What to say about an option beside its name.
+ *
+ * `help=` first, because that is the author's own sentence. Where there is none
+ * — and in a real project most flags had none — the type and the default are
+ * still worth more than the alternative, which was a manual repeating "purpose
+ * not stated in the material" eleven times.
+ */
+const describeFlag = (tail: string): string => {
+	const help = ARG_HELP.exec(tail ?? "")
+	if (help) {
+		return help[1].split(/\s+/).join(" ")
+	}
+	const parts: string[] = []
+	if (ARG_REQUIRED.test(tail ?? "")) {
+		parts.push("required")
+	}
+	const type = ARG_TYPE.exec(tail ?? "")
+	if (type) {
+		parts.push(type[1])
+	}
+	const fallback = ARG_DEFAULT.exec(tail ?? "")
+	if (fallback) {
+		parts.push(`default ${fallback[1].replace(/^['"]|['"]$/g, "")}`)
+	}
+	return parts.join(", ")
+}
+
+const firstHelp = (tail: string): string => {
+	const found = ARG_HELP.exec(tail ?? "")
+	return found ? found[1].split(/\s+/).join(" ") : ""
+}
+
+/** Commands and flags a Python file accepts, as a reader would type them. */
+function commandsIn(text: string) {
+	const commands: Array<{ name: string; help: string }> = []
+	const flags: Array<{ name: string; help: string }> = []
+	for (const match of each(ARG_SUB, text)) {
+		commands.push({ name: match[1], help: firstHelp(match[2]) })
+	}
+	for (const match of each(CLICK, text)) {
+		if (match[1]) {
+			commands.push({ name: match[1], help: "" })
+		}
+	}
+	const seen = new Set<string>()
+	for (const match of each(ARG_FLAG, text)) {
+		if (seen.has(match[1])) {
+			continue
+		}
+		seen.add(match[1])
+		flags.push({ name: match[1], help: describeFlag(match[2]) })
+	}
+	return { commands: commands.slice(0, 20), flags: flags.slice(0, 25) }
+}
+
+/** HTTP paths a file serves. A URL has to look like one: `@mock.patch("requests.get")` is not a PATCH endpoint. */
+function routesIn(text: string, file: string): DigestUsage["routes"] {
+	const out: DigestUsage["routes"] = []
+	const seen = new Set<string>()
+	const keep = (method: string, raw: string, handler: string, urlByDefinition = false) => {
+		if (!urlByDefinition && !raw.startsWith("/")) {
+			return
+		}
+		// A Django re_path is a regex, and printing it raw tells a reader nothing.
+		const cleaned =
+			"/" +
+			raw
+				.replace(/\(\?P<(\w+)>[^)]*\)/g, "<$1>")
+				.trim()
+				.replace(/^[/^]+/, "")
+				.replace(/\$$/, "")
+				.replace(/\\/g, "")
+		if (cleaned.startsWith("//") || cleaned.includes(" ")) {
+			return
+		}
+		const key = `${method} ${cleaned}`
+		if (seen.has(key)) {
+			return
+		}
+		seen.add(key)
+		out.push({ method, path: cleaned, handler, file })
+	}
+	for (const match of each(ROUTE_DECORATOR, text)) {
+		const method = match[2].toUpperCase()
+		keep(method === "ROUTE" ? "ANY" : method, match[3], "")
+	}
+	for (const match of each(ROUTE_DJANGO, text)) {
+		keep("ANY", match[1] || "/", match[2], true)
+	}
+	for (const match of each(ROUTE_EXPRESS, text)) {
+		keep(match[1].toUpperCase(), match[2], "")
+	}
+	return out.slice(0, 60)
+}
+
+function envIn(text: string, suffix: string, base: string): Set<string> {
+	const names = new Set<string>()
+	if (suffix === ".py" || suffix === ".pyi") {
+		for (const match of each(ENV_PY, text)) {
+			names.add(match[1] ?? match[2])
+		}
+	} else if (JS_SUFFIXES.includes(suffix)) {
+		for (const match of each(ENV_JS, text)) {
+			names.add(match[1] ?? match[2])
+		}
+	} else if (
+		suffix === ".sh" ||
+		suffix === ".bash" ||
+		base === ".env" ||
+		base === ".env.example" ||
+		base === "dockerfile"
+	) {
+		for (const match of each(ENV_SH, text)) {
+			names.add(match[1])
+		}
+	}
+	return names
+}
+
+/** Commands the packaging files promise: scripts, entry points, targets. */
+function declaredCommands(relative: string, text: string): Array<{ name: string; help: string }> {
+	const base = path.basename(relative).toLowerCase()
+	const out: Array<{ name: string; help: string }> = []
+	if (base === "package.json") {
+		try {
+			const data = JSON.parse(text) as {
+				scripts?: Record<string, string>
+				bin?: string | Record<string, string>
+				name?: string
+			}
+			for (const [name, body] of Object.entries(data.scripts ?? {})) {
+				out.push({ name: `npm run ${name}`, help: String(body).slice(0, 120) })
+			}
+			if (typeof data.bin === "string") {
+				out.push({ name: String(data.name ?? relative), help: data.bin })
+			} else if (data.bin) {
+				out.push(...Object.entries(data.bin).map(([k, v]) => ({ name: k, help: String(v).slice(0, 120) })))
+			}
+		} catch {
+			// A package.json that does not parse is not a command list.
+		}
+	} else if (base === "makefile") {
+		for (const match of each(MAKE_TARGET, text)) {
+			if (match[1] !== "PHONY" && match[1] !== ".PHONY") {
+				out.push({ name: `make ${match[1]}`, help: "" })
+			}
+		}
+	} else if (base === "pyproject.toml" || base === "setup.py" || base === "setup.cfg") {
+		for (const match of each(/^\s*['"]?([\w.-]+)['"]?\s*=\s*['"]([\w.]+:[\w.]+)['"]/gm, text)) {
+			out.push({ name: match[1], help: `runs ${match[2]}` })
+		}
+	} else if (base.startsWith("docker-compose") || base === "compose.yaml") {
+		for (const match of each(COMPOSE_SERVICE, text)) {
+			out.push({ name: `docker compose up ${match[1]}`, help: "" })
+		}
+	}
+	return out.slice(0, 40)
+}
+
+export function usageSurface(files: DigestFile[], texts: Map<string, string>): DigestUsage {
+	const entryPoints: DigestUsage["entryPoints"] = []
+	const commands: DigestUsage["commands"] = []
+	const routes: DigestUsage["routes"] = []
+	const env = new Map<string, string[]>()
+	const defaults = new Map<string, string>()
+
+	for (const file of files) {
+		const text = texts.get(file.path) ?? ""
+		const suffix = path.extname(file.path).toLowerCase()
+		const base = path.basename(file.path).toLowerCase()
+
+		if (ENTRY_MAIN.test(text) || file.path.includes("/management/commands/")) {
+			entryPoints.push({ path: file.path, purpose: file.purpose })
+		}
+		if (suffix === ".py" || suffix === ".pyi") {
+			const found = commandsIn(text)
+			if (found.commands.length || found.flags.length) {
+				commands.push({ path: file.path, ...found })
+			}
+			for (const match of each(ENV_DEFAULT, text)) {
+				const value = match[2].replace(/^['"]|['"]$/g, "")
+				if (value && value !== "None" && !defaults.has(match[1])) {
+					defaults.set(match[1], value.slice(0, 60))
+				}
+			}
+		}
+		routes.push(...routesIn(text, file.path))
+		for (const name of envIn(text, suffix, base)) {
+			env.set(name, [...(env.get(name) ?? []), file.path])
+		}
+		const declared = declaredCommands(file.path, text)
+		if (declared.length) {
+			commands.push({ path: file.path, commands: declared, flags: [] })
+		}
+	}
+
+	return {
+		entryPoints: entryPoints.slice(0, 30),
+		commands: commands.slice(0, 40),
+		routes: routes.slice(0, 120),
+		env: [...env.entries()]
+			.sort(([a], [b]) => a.localeCompare(b))
+			.slice(0, 60)
+			.map(([name, usedIn]) => ({ name, usedIn: usedIn.slice(0, 4), default: defaults.get(name) ?? "" })),
+	}
+}
+
 export async function digestRepository(root: string, maxFiles = 4_000): Promise<RepoDigest> {
 	const files: DigestFile[] = []
 	const texts = new Map<string, string>()
@@ -598,6 +865,7 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 
 	await walk(root)
 	const imports = importEdges(files, texts)
+	const usage = usageSurface(files, texts)
 	files.sort((a, b) => b.lines - a.lines)
 
 	return {
@@ -610,7 +878,92 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 		files,
 		configs,
 		imports,
+		usage,
 	}
+}
+
+/**
+ * The usage surface, written out for the sections that become the manual.
+ *
+ * The wording and the headings match tools/repo_digest/repo_digest.py exactly:
+ * the cluster looks for "HOW THE PROJECT IS RUN AND WHAT IT ACCEPTS" to decide
+ * that a document needs a user manual, and for the four sub-headings to decide
+ * which parts of one. A brief without them gets a document that describes the
+ * code and never says how to run it — which is what the extension was sending.
+ */
+function usageLines(usage: DigestUsage | undefined): string[] {
+	if (!usage) {
+		return []
+	}
+	const out = [
+		"",
+		"HOW THE PROJECT IS RUN AND WHAT IT ACCEPTS",
+		"  (read out of the source; write the user-manual sections from this and invent nothing to fill a gap)",
+	]
+	if (usage.entryPoints.length) {
+		out.push("  RUNNABLE FILES — each of these is started directly")
+		for (const entry of usage.entryPoints.slice(0, 20)) {
+			out.push(`    ${entry.path}${entry.purpose ? ` — ${entry.purpose.slice(0, 120)}` : ""}`)
+		}
+	}
+	if (usage.commands.length) {
+		out.push("  COMMANDS AND OPTIONS")
+		for (const file of usage.commands.slice(0, 25)) {
+			out.push(`    in ${file.path}:`)
+			for (const command of file.commands.slice(0, 12)) {
+				out.push(`      command ${command.name}${command.help ? ` — ${command.help}` : ""}`)
+			}
+			for (const flag of file.flags.slice(0, 14)) {
+				out.push(`      option ${flag.name}${flag.help ? ` — ${flag.help}` : ""}`)
+			}
+		}
+	}
+	if (usage.routes.length) {
+		out.push("  HTTP ENDPOINTS SERVED")
+		for (const route of usage.routes.slice(0, 90)) {
+			out.push(
+				`    ${route.method.padEnd(6)} ${route.path}` +
+					(route.handler ? `  (${route.handler})` : "") +
+					`  [${route.file}]`,
+			)
+		}
+	}
+	if (usage.env.length) {
+		out.push("  ENVIRONMENT VARIABLES READ")
+		for (const variable of usage.env.slice(0, 50)) {
+			out.push(
+				`    ${variable.name} — read in ${variable.usedIn.join(", ")}` +
+					(variable.default ? `; default ${variable.default}` : ""),
+			)
+		}
+	}
+	return out.length === 3 ? [] : out
+}
+
+/** Which parts of a manual this material can support, named for the writer. */
+function manualHint(usage: DigestUsage | undefined): string {
+	const parts: string[] = []
+	if (usage?.entryPoints.length) {
+		parts.push(`${usage.entryPoints.length} runnable files`)
+	}
+	const options = (usage?.commands ?? []).reduce((total, file) => total + file.commands.length + file.flags.length, 0)
+	if (options) {
+		parts.push(`${options} commands and options`)
+	}
+	if (usage?.routes.length) {
+		parts.push(`${usage.routes.length} endpoints`)
+	}
+	if (usage?.env.length) {
+		parts.push(`${usage.env.length} environment variables`)
+	}
+	if (!parts.length) {
+		return "The material lists no commands or endpoints, so say in the running section how the code is entered and leave it there."
+	}
+	return (
+		`The usage material above lists ${parts.join(", ")}; the user-manual sections have to account ` +
+		"for all of them, in tables where there is more than a handful, with the name exactly as a " +
+		"user would type it and what it does beside it."
+	)
 }
 
 const depthHint = (digest: RepoDigest): string => {
@@ -665,6 +1018,8 @@ export function digestToBrief(digest: RepoDigest, budget = 90_000): string {
 		)
 	}
 
+	head.push(...usageLines(digest.usage))
+
 	head.push("", "CONFIGURATION AND DOCUMENTATION FILES, VERBATIM")
 	for (const config of digest.configs) {
 		head.push(
@@ -699,8 +1054,11 @@ export function digestToBrief(digest: RepoDigest, budget = 90_000): string {
 		`${body}\n${tail.join("\n")}\n\n` +
 		"Write it in this order: what the project is and what it is for; how the repository is laid " +
 		"out; then one section per significant component — named after the directory or file it " +
-		"covers, saying what it does, what it defines and how it fits the rest; then configuration; " +
-		"then how the thing is run; and a conclusion last if you write one at all. " +
+		"covers, saying what it does, what it defines and how it fits the rest; then the user " +
+		"manual — a section for getting it running, a section listing every command and option with " +
+		"what each one does, a section for the HTTP endpoints if there are any, and a section for " +
+		"configuration and environment variables; and a conclusion last if you write one at all. " +
+		`${manualHint(digest.usage)} ` +
 		`${depthHint(digest)} Use the real names throughout, and prefer a component's own stated ` +
 		"purpose over a description you compose. Do not write a section about what this material " +
 		"does not say."

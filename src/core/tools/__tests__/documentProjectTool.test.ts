@@ -26,6 +26,7 @@ const digest = {
 	files: [{ path: "src/a.ts", lines: 100, purpose: "does a thing", defines: ["a"] }],
 	configs: [],
 	imports: [{ from: "src/a", to: "src/b" }],
+	usage: { entryPoints: [], commands: [], routes: [], env: [] },
 }
 
 /**
