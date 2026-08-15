@@ -347,10 +347,39 @@ describe("usage surface", () => {
 			const flags = digest.usage.commands.flatMap((file) => file.flags.map((flag) => flag.name))
 			expect(flags).toContain("--own")
 			expect(flags).not.toContain("--theirs")
-			// It is still in the repository, so it is still in the inventory.
-			expect(digest.files.map((file) => file.path)).toContain("train/gguf/tool/convert.py")
+			// And it leaves the digest altogether: counted as the project's own
+			// files, llama.cpp's tooling was the largest "component" of a real
+			// workspace and had a section of the document written about it.
+			expect(digest.files.map((file) => file.path)).not.toContain("train/gguf/tool/convert.py")
+			expect(digest.files.map((file) => file.path)).toContain("app/cli.py")
+			expect(digest.vendored.some((root) => root.startsWith("train/gguf"))).toBe(true)
 		} finally {
 			await fs.rm(bundled, { recursive: true, force: true })
+		}
+	})
+
+	it("reads a raw-string default as the path, not as the r", async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "digest-default-"))
+		try {
+			await fs.writeFile(
+				path.join(dir, "ship.py"),
+				[
+					"import argparse",
+					"ap = argparse.ArgumentParser()",
+					'ap.add_argument("--out", default=r"C:/models")',
+					'ap.add_argument("--n", type=int, default=5)',
+					"",
+				].join("\n"),
+				"utf8",
+			)
+			const digest = await digestRepository(dir)
+			const flags = Object.fromEntries(
+				digest.usage.commands.flatMap((file) => file.flags.map((flag) => [flag.name, flag.help])),
+			)
+			expect(flags["--out"]).toBe("default C:/models")
+			expect(flags["--n"]).toBe("int, default 5")
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true })
 		}
 	})
 })

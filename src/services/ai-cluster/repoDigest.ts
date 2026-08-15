@@ -259,6 +259,8 @@ export type RepoDigest = {
 	imports: DigestEdge[]
 	/** Entry points, commands, endpoints and settings — the manual's material. */
 	usage: DigestUsage
+	/** Bundled projects that were left out of all of the above. */
+	vendored: string[]
 }
 
 /** Blocks the caller already holds as fact, typeset verbatim by the cluster. */
@@ -546,6 +548,12 @@ const ENV_PY =
 	/(?:os\.environ(?:\.get)?\(?\s*\[?\s*['"]([A-Z][A-Z0-9_]{2,})['"]|os\.getenv\(\s*['"]([A-Z][A-Z0-9_]{2,})['"])/g
 const ENV_JS = /process\.env(?:\.([A-Z][A-Z0-9_]{2,})|\[['"]([A-Z][A-Z0-9_]{2,})['"]\])/g
 const ENV_SH = /\$\{?([A-Z][A-Z0-9_]{3,})\}?/g
+// Names declared in a table rather than read one at a time. docqa maps every
+// override in a dict — {"DOCQA_BACKEND": "backend", ...} — and reads them with
+// os.getenv(env_name), so a pattern looking for the name inside the call found
+// none of the seven and the manual listed one.
+const ENV_TABLE = /['"]([A-Z][A-Z0-9_]{3,})['"]\s*:/g
+const READS_ENV = /os\.environ|os\.getenv|process\.env/
 // A quoted literal, a number or a boolean. An expression is not a default
 // anyone can be told to type.
 const ENV_DEFAULT =
@@ -568,7 +576,9 @@ const each = (pattern: RegExp, text: string): RegExpExecArray[] => {
 
 const ARG_REQUIRED = /required\s*=\s*True/
 const ARG_TYPE = /type\s*=\s*(\w+)/
-const ARG_DEFAULT = /default\s*=\s*("[^"]*"|'[^']*'|[\w.+-]+)/
+// The r/f/b prefix belongs to the string, not to the value: `default=r"C:\x"`
+// was read as a default of "r" and the manual said so in three rows.
+const ARG_DEFAULT = /default\s*=\s*(?:[rfbu]{1,2})?("[^"]*"|'[^']*'|[\w.+-]+)/
 
 /**
  * What to say about an option beside its name.
@@ -672,6 +682,11 @@ function envIn(text: string, suffix: string, base: string): Set<string> {
 		for (const match of each(ENV_PY, text)) {
 			names.add(match[1] ?? match[2])
 		}
+		if (READS_ENV.test(text)) {
+			for (const match of each(ENV_TABLE, text)) {
+				names.add(match[1])
+			}
+		}
 	} else if (JS_SUFFIXES.includes(suffix)) {
 		for (const match of each(ENV_JS, text)) {
 			names.add(match[1] ?? match[2])
@@ -751,6 +766,32 @@ function vendoredRoots(files: DigestFile[], marked: Iterable<string> = []): stri
 		}
 		if (LICENCE_NAMES.has(parts[parts.length - 1].toLowerCase())) {
 			roots.add(parts.slice(0, -1).join("/") + "/")
+		}
+	}
+
+	// A licence inside a subtree condemns the subtree, not just the directory
+	// holding it. It sat at train/gguf/llamacpp/gguf-py/LICENSE, while the tree
+	// above it — llama.cpp's converters, their requirements, 137 files in all —
+	// carried none, and the document gave its largest section to "Component:
+	// train, 139 files, 99,872 lines" of somebody else's code.
+	//
+	// Two weaker signals were tried first and both let it through: a directory
+	// that *only* wraps bundled projects (this one also holds converters of its
+	// own), and one nothing imports (the project's scripts do call those
+	// converters). What is left is depth: the mark climbs to the second level,
+	// so `train/gguf/` goes and `train/`, which holds the project's own training
+	// scripts, stays.
+	for (const root of [...roots]) {
+		const parts = root.split("/").filter(Boolean)
+		if (parts.length > 2) {
+			roots.add(parts.slice(0, 2).join("/") + "/")
+		}
+	}
+	for (const root of [...roots]) {
+		// Keep the list to the outermost directory of each bundled tree; the
+		// ones below it are the same thing said again.
+		if ([...roots].some((other) => other !== root && root.startsWith(other))) {
+			roots.delete(root)
 		}
 	}
 	return [...roots]
@@ -911,22 +952,50 @@ export async function digestRepository(root: string, maxFiles = 4_000): Promise<
 	}
 
 	await walk(root)
-	const imports = importEdges(files, texts)
-	const usage = usageSurface(files, texts, vendoredDirs)
-	files.sort((a, b) => b.lines - a.lines)
+
+	// Bundled projects leave the digest here, not just the user manual. Left in,
+	// llama.cpp's tooling was 137 of one workspace's 217 files and the document
+	// gave its largest section to it — "Component: train, 139 files, 99,872
+	// lines" — describing somebody else's conversion scripts as the project's
+	// own. The counts, the components and the inventory now all mean the same
+	// thing: this project.
+	const vendored = vendoredRoots(files, vendoredDirs)
+	const own = vendored.length
+		? files.filter((file) => !vendored.some((prefix) => file.path.startsWith(prefix)))
+		: files
+	const excluded = files.length - own.length
+	const ownTotalLines = excluded ? own.reduce((sum, file) => sum + file.lines, 0) : totalLines
+	const ownDirectories = excluded ? countDirectories(own) : [...byDirectory.values()]
+
+	const imports = importEdges(own, texts)
+	const usage = usageSurface(own, texts, vendored)
+	own.sort((a, b) => b.lines - a.lines)
 
 	return {
 		name: path.basename(root) || root,
 		root,
-		fileCount: files.length,
-		totalLines,
+		fileCount: own.length,
+		totalLines: ownTotalLines,
 		truncated,
-		directories: [...byDirectory.values()].sort((a, b) => b.lines - a.lines),
-		files,
-		configs,
+		directories: ownDirectories.sort((a, b) => b.lines - a.lines),
+		files: own,
+		configs: configs.filter((config) => !vendored.some((prefix) => config.path.startsWith(prefix))),
 		imports,
 		usage,
+		vendored,
 	}
+}
+
+function countDirectories(files: DigestFile[]): DigestDirectory[] {
+	const byDirectory = new Map<string, DigestDirectory>()
+	for (const file of files) {
+		const top = file.path.includes("/") ? file.path.split("/")[0] : "."
+		const bucket = byDirectory.get(top) ?? { name: top, files: 0, lines: 0 }
+		bucket.files += 1
+		bucket.lines += file.lines
+		byDirectory.set(top, bucket)
+	}
+	return [...byDirectory.values()]
 }
 
 /**
