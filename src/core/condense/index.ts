@@ -111,7 +111,15 @@ export function transformMessagesForCondensing<
 export const MIN_CONDENSE_THRESHOLD = 5 // Minimum percentage of context window to trigger condensing
 export const MAX_CONDENSE_THRESHOLD = 100 // Maximum percentage of context window to trigger condensing
 
-const SUMMARY_PROMPT = `You are a helpful AI assistant tasked with summarizing conversations.
+// The first line is a machine-readable mark, not prose for the model. The AI
+// Cluster middleware runs every chat request through its pipelines — skills
+// router, RAG, cross-session memory, the verify gate — and applied them to
+// this internal call too: the summary came back diluted and salted with
+// retrieved material from other sessions, and every answer built on that
+// summary was worse. The mark tells the middleware to pass the request to the
+// model untouched. Other providers ignore the line.
+const SUMMARY_PROMPT = `<<viracode:internal:condense>>
+You are a helpful AI assistant tasked with summarizing conversations.
 
 CRITICAL: This is a summarization-only request. DO NOT call any tools or functions.
 Your ONLY task is to analyze the conversation and produce a text summary.
