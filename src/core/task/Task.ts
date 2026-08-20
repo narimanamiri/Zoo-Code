@@ -141,6 +141,8 @@ const MAX_EXPONENTIAL_BACKOFF_SECONDS = 600 // 10 minutes
 const DEFAULT_USAGE_COLLECTION_TIMEOUT_MS = 5000 // 5 seconds
 const FORCED_CONTEXT_REDUCTION_PERCENT = 75 // Keep 75% of context (remove 25%) on context window errors
 const MAX_CONTEXT_WINDOW_RETRIES = 3 // Maximum retries for context window errors
+const MAX_GENERIC_RETRIES = 8 // Cap on auto-retry for any other first-chunk error, so a
+// non-transient, deterministic failure surfaces to the user instead of retrying forever
 
 export interface TaskOptions extends CreateTaskOptions {
 	provider: ClineProvider
@@ -4406,7 +4408,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 
 			// note that this api_req_failed ask is unique in that we only present this option if the api hasn't streamed any content yet (ie it fails on the first chunk due), as it would allow them to hit a retry button. However if the api failed mid-stream, it could be in any arbitrary state where some tools may have executed, so that error is handled differently and requires cancelling the task entirely.
-			if (autoApprovalEnabled) {
+			//
+			// Auto-retry only smooths over transient failures (rate limits, network blips) that
+			// clear on their own. A cause that survives MAX_GENERIC_RETRIES in a row — e.g. a
+			// model emitting tool-call output the backend's own grammar parser rejects — is
+			// deterministic, not transient: resending the identical request just reproduces it.
+			// Below that cap, retry automatically; at or past it, fall through to asking the
+			// user instead of retrying forever at up to MAX_EXPONENTIAL_BACKOFF_SECONDS apart.
+			if (autoApprovalEnabled && retryAttempt < MAX_GENERIC_RETRIES) {
 				// Apply shared exponential backoff and countdown UX
 				await this.backoffAndAnnounce(retryAttempt, error)
 
