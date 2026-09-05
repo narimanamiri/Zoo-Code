@@ -45,6 +45,7 @@
 		"rules": "Aturan"
 	},
 	"about": {
+		"developedBy": "Dikembangkan oleh Nariman Amiri",
 		"bugReport": {
 			"label": "Menemukan bug?",
 			"link": "Laporkan di GitHub"

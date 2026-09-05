@@ -45,6 +45,7 @@
 		"rules": "Quy tắc"
 	},
 	"about": {
+		"developedBy": "Phát triển bởi Nariman Amiri",
 		"bugReport": {
 			"label": "Tìm thấy lỗi?",
 			"link": "Báo cáo trên GitHub"

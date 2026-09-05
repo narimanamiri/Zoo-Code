@@ -45,6 +45,7 @@
 		"rules": "Kurallar"
 	},
 	"about": {
+		"developedBy": "Nariman Amiri tarafından geliştirildi",
 		"bugReport": {
 			"label": "Bir hata mı buldunuz?",
 			"link": "GitHub'da bildirin"

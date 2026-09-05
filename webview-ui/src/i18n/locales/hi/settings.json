@@ -45,6 +45,7 @@
 		"rules": "नियम"
 	},
 	"about": {
+		"developedBy": "Nariman Amiri द्वारा विकसित",
 		"bugReport": {
 			"label": "बग मिला?",
 			"link": "GitHub पर रिपोर्ट करें"

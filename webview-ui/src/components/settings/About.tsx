@@ -103,6 +103,7 @@ export const About = ({ telemetrySetting, setTelemetrySetting, debug, setDebug, 
 						? `Version: ${Package.version} (${Package.sha.slice(0, 8)})`
 						: `Version: ${Package.version}`}
 				</p>
+				<p className="text-vscode-descriptionForeground mt-0">{t("settings:about.developedBy")}</p>
 				<SearchableSetting
 					settingId="about-telemetry"
 					section="about"

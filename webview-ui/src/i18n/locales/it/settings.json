@@ -45,6 +45,7 @@
 		"rules": "Regole"
 	},
 	"about": {
+		"developedBy": "Sviluppato da Nariman Amiri",
 		"bugReport": {
 			"label": "Hai trovato un bug?",
 			"link": "Segnala su GitHub"

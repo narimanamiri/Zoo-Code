@@ -45,6 +45,7 @@
 		"about": "About ViraCode"
 	},
 	"about": {
+		"developedBy": "Developed by Nariman Amiri",
 		"bugReport": {
 			"label": "Found a bug?",
 			"link": "Report on GitHub"

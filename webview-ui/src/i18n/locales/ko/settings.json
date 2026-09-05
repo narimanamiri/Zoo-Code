@@ -45,6 +45,7 @@
 		"rules": "규칙"
 	},
 	"about": {
+		"developedBy": "개발자: Nariman Amiri",
 		"bugReport": {
 			"label": "버그를 발견하셨나요?",
 			"link": "GitHub에서 보고"
