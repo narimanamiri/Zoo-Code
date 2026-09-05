@@ -1,20 +1,29 @@
-import type { ClineAskUseMcpServer, McpExecutionStatus, McpResourceLink } from "@roo-code/types"
+import type {
+  ClineAskUseMcpServer,
+  McpExecutionStatus,
+  McpResourceLink,
+} from "@roo-code/types";
 
-import { Task } from "../task/Task"
-import { formatResponse } from "../prompts/responses"
-import { documentCredentials } from "../../services/ai-cluster"
-import { deliveryNote, documentLinks, saveDocuments } from "../../services/ai-cluster/documentDelivery"
-import { t } from "../../i18n"
-import type { ToolUse } from "../../shared/tools"
-import { toolNamesMatch } from "../../utils/mcp-name"
+import { Task } from "../task/Task";
+import { formatResponse } from "../prompts/responses";
+import { documentCredentials } from "../../services/ai-cluster";
+import {
+  deliveryNote,
+  documentLinks,
+  saveDocuments,
+} from "../../services/ai-cluster/documentDelivery";
+import { aiClusterOrigin } from "../../api/providers/fetchers/ai-cluster";
+import { t } from "../../i18n";
+import type { ToolUse } from "../../shared/tools";
+import { toolNamesMatch } from "../../utils/mcp-name";
 
-import { BaseTool, ToolCallbacks } from "./BaseTool"
-import { ensureMcpServerAllowed } from "./mcpServerRestriction"
+import { BaseTool, ToolCallbacks } from "./BaseTool";
+import { ensureMcpServerAllowed } from "./mcpServerRestriction";
 
 interface UseMcpToolParams {
-	server_name: string
-	tool_name: string
-	arguments?: Record<string, unknown>
+  server_name: string;
+  tool_name: string;
+  arguments?: Record<string, unknown>;
 }
 
 /**
@@ -26,401 +35,495 @@ interface UseMcpToolParams {
  * shared validateToolUse path.
  */
 export interface UseMcpToolCallbacks extends ToolCallbacks {
-	onValidated?: () => void
+  onValidated?: () => void;
 }
 
 type ValidationResult =
-	| { isValid: false }
-	| {
-			isValid: true
-			serverName: string
-			toolName: string
-			parsedArguments?: Record<string, unknown>
-	  }
+  | { isValid: false }
+  | {
+      isValid: true;
+      serverName: string;
+      toolName: string;
+      parsedArguments?: Record<string, unknown>;
+    };
 
 export class UseMcpToolTool extends BaseTool<"use_mcp_tool"> {
-	readonly name = "use_mcp_tool" as const
+  readonly name = "use_mcp_tool" as const;
 
-	async execute(params: UseMcpToolParams, task: Task, callbacks: UseMcpToolCallbacks): Promise<void> {
-		const { askApproval, handleError, pushToolResult, onValidated } = callbacks
+  async execute(
+    params: UseMcpToolParams,
+    task: Task,
+    callbacks: UseMcpToolCallbacks,
+  ): Promise<void> {
+    const { askApproval, handleError, pushToolResult, onValidated } = callbacks;
 
-		try {
-			// Validate parameters
-			const validation = await this.validateParams(task, params, pushToolResult)
-			if (!validation.isValid) {
-				return
-			}
+    try {
+      // Validate parameters
+      const validation = await this.validateParams(
+        task,
+        params,
+        pushToolResult,
+      );
+      if (!validation.isValid) {
+        return;
+      }
 
-			const { serverName, toolName, parsedArguments } = validation
+      const { serverName, toolName, parsedArguments } = validation;
 
-			// Validate that the tool exists on the server
-			const toolValidation = await this.validateToolExists(task, serverName, toolName, pushToolResult)
-			if (!toolValidation.isValid) {
-				return
-			}
+      // Validate that the tool exists on the server
+      const toolValidation = await this.validateToolExists(
+        task,
+        serverName,
+        toolName,
+        pushToolResult,
+      );
+      if (!toolValidation.isValid) {
+        return;
+      }
 
-			// Execution-time defense: reject invocation of a server not permitted by the mode's
-			// allowedMcpServers allowlist, even if the model referenced it from history. This runs
-			// before approval/execution so a disallowed server can never be reached.
-			const serverAllowed = await ensureMcpServerAllowed(
-				task,
-				"use_mcp_tool",
-				serverName,
-				pushToolResult,
-				formatResponse.toolError,
-			)
-			if (!serverAllowed) {
-				return
-			}
+      // Execution-time defense: reject invocation of a server not permitted by the mode's
+      // allowedMcpServers allowlist, even if the model referenced it from history. This runs
+      // before approval/execution so a disallowed server can never be reached.
+      const serverAllowed = await ensureMcpServerAllowed(
+        task,
+        "use_mcp_tool",
+        serverName,
+        pushToolResult,
+        formatResponse.toolError,
+      );
+      if (!serverAllowed) {
+        return;
+      }
 
-			// Use the resolved tool name (original name from the server) for MCP calls
-			// This handles cases where models mangle hyphens to underscores
-			const resolvedToolName = toolValidation.resolvedToolName ?? toolName
+      // Use the resolved tool name (original name from the server) for MCP calls
+      // This handles cases where models mangle hyphens to underscores
+      const resolvedToolName = toolValidation.resolvedToolName ?? toolName;
 
-			// Reset mistake count on successful validation
-			task.consecutiveMistakeCount = 0
+      // Reset mistake count on successful validation
+      task.consecutiveMistakeCount = 0;
 
-			// All internal validation (params, tool existence, server allow-list) has
-			// passed. Only now is it safe to attribute this as an attempted tool use.
-			onValidated?.()
+      // All internal validation (params, tool existence, server allow-list) has
+      // passed. Only now is it safe to attribute this as an attempted tool use.
+      onValidated?.();
 
-			// Get user approval
-			const completeMessage = JSON.stringify({
-				type: "use_mcp_tool",
-				serverName,
-				toolName: resolvedToolName,
-				arguments: params.arguments ? JSON.stringify(params.arguments) : undefined,
-			} satisfies ClineAskUseMcpServer)
+      // Get user approval
+      const completeMessage = JSON.stringify({
+        type: "use_mcp_tool",
+        serverName,
+        toolName: resolvedToolName,
+        arguments: params.arguments
+          ? JSON.stringify(params.arguments)
+          : undefined,
+      } satisfies ClineAskUseMcpServer);
 
-			const executionId = task.lastMessageTs?.toString() ?? Date.now().toString()
-			const didApprove = await askApproval("use_mcp_server", completeMessage)
+      const executionId =
+        task.lastMessageTs?.toString() ?? Date.now().toString();
+      const didApprove = await askApproval("use_mcp_server", completeMessage);
 
-			if (!didApprove) {
-				return
-			}
+      if (!didApprove) {
+        return;
+      }
 
-			// Execute the tool and process results
-			await this.executeToolAndProcessResult(
-				task,
-				serverName,
-				resolvedToolName,
-				parsedArguments,
-				executionId,
-				pushToolResult,
-			)
-		} catch (error) {
-			await handleError("executing MCP tool", error as Error)
-		}
-	}
+      // Execute the tool and process results
+      await this.executeToolAndProcessResult(
+        task,
+        serverName,
+        resolvedToolName,
+        parsedArguments,
+        executionId,
+        pushToolResult,
+      );
+    } catch (error) {
+      await handleError("executing MCP tool", error as Error);
+    }
+  }
 
-	override async handlePartial(task: Task, block: ToolUse<"use_mcp_tool">): Promise<void> {
-		const params = block.params
-		const partialMessage = JSON.stringify({
-			type: "use_mcp_tool",
-			serverName: params.server_name ?? "",
-			toolName: params.tool_name ?? "",
-			arguments: params.arguments,
-		} satisfies ClineAskUseMcpServer)
+  override async handlePartial(
+    task: Task,
+    block: ToolUse<"use_mcp_tool">,
+  ): Promise<void> {
+    const params = block.params;
+    const partialMessage = JSON.stringify({
+      type: "use_mcp_tool",
+      serverName: params.server_name ?? "",
+      toolName: params.tool_name ?? "",
+      arguments: params.arguments,
+    } satisfies ClineAskUseMcpServer);
 
-		await task.ask("use_mcp_server", partialMessage, true).catch(() => {})
-	}
+    await task.ask("use_mcp_server", partialMessage, true).catch(() => {});
+  }
 
-	private async validateParams(
-		task: Task,
-		params: UseMcpToolParams,
-		pushToolResult: (content: string) => void,
-	): Promise<ValidationResult> {
-		if (!params.server_name) {
-			task.consecutiveMistakeCount++
-			task.recordToolError("use_mcp_tool")
-			pushToolResult(await task.sayAndCreateMissingParamError("use_mcp_tool", "server_name"))
-			return { isValid: false }
-		}
+  private async validateParams(
+    task: Task,
+    params: UseMcpToolParams,
+    pushToolResult: (content: string) => void,
+  ): Promise<ValidationResult> {
+    if (!params.server_name) {
+      task.consecutiveMistakeCount++;
+      task.recordToolError("use_mcp_tool");
+      pushToolResult(
+        await task.sayAndCreateMissingParamError("use_mcp_tool", "server_name"),
+      );
+      return { isValid: false };
+    }
 
-		if (!params.tool_name) {
-			task.consecutiveMistakeCount++
-			task.recordToolError("use_mcp_tool")
-			pushToolResult(await task.sayAndCreateMissingParamError("use_mcp_tool", "tool_name"))
-			return { isValid: false }
-		}
+    if (!params.tool_name) {
+      task.consecutiveMistakeCount++;
+      task.recordToolError("use_mcp_tool");
+      pushToolResult(
+        await task.sayAndCreateMissingParamError("use_mcp_tool", "tool_name"),
+      );
+      return { isValid: false };
+    }
 
-		// Some LLMs emit arguments as JSON-encoded strings rather than objects.
-		// Parse them early so the type check below sees the unwrapped object.
-		if (typeof params.arguments === "string") {
-			try {
-				params.arguments = JSON.parse(params.arguments)
-			} catch {}
-		}
+    // Some LLMs emit arguments as JSON-encoded strings rather than objects.
+    // Parse them early so the type check below sees the unwrapped object.
+    if (typeof params.arguments === "string") {
+      try {
+        params.arguments = JSON.parse(params.arguments);
+      } catch {}
+    }
 
-		let parsedArguments: Record<string, unknown> | undefined
-		if (params.arguments !== undefined) {
-			if (typeof params.arguments !== "object" || params.arguments === null || Array.isArray(params.arguments)) {
-				task.consecutiveMistakeCount++
-				task.recordToolError("use_mcp_tool")
-				await task.say("error", t("mcp:errors.invalidJsonArgument", { toolName: params.tool_name }))
-				task.didToolFailInCurrentTurn = true
-				pushToolResult(
-					formatResponse.toolError(
-						formatResponse.invalidMcpToolArgumentError(params.server_name, params.tool_name),
-					),
-				)
-				return { isValid: false }
-			}
-			parsedArguments = params.arguments
-		}
+    let parsedArguments: Record<string, unknown> | undefined;
+    if (params.arguments !== undefined) {
+      if (
+        typeof params.arguments !== "object" ||
+        params.arguments === null ||
+        Array.isArray(params.arguments)
+      ) {
+        task.consecutiveMistakeCount++;
+        task.recordToolError("use_mcp_tool");
+        await task.say(
+          "error",
+          t("mcp:errors.invalidJsonArgument", { toolName: params.tool_name }),
+        );
+        task.didToolFailInCurrentTurn = true;
+        pushToolResult(
+          formatResponse.toolError(
+            formatResponse.invalidMcpToolArgumentError(
+              params.server_name,
+              params.tool_name,
+            ),
+          ),
+        );
+        return { isValid: false };
+      }
+      parsedArguments = params.arguments;
+    }
 
-		return {
-			isValid: true,
-			serverName: params.server_name,
-			toolName: params.tool_name,
-			parsedArguments,
-		}
-	}
+    return {
+      isValid: true,
+      serverName: params.server_name,
+      toolName: params.tool_name,
+      parsedArguments,
+    };
+  }
 
-	private async validateToolExists(
-		task: Task,
-		serverName: string,
-		toolName: string,
-		pushToolResult: (content: string) => void,
-	): Promise<{ isValid: boolean; availableTools?: string[]; resolvedToolName?: string }> {
-		try {
-			// Get the MCP hub to access server information
-			const provider = task.providerRef.deref()
-			const mcpHub = provider?.getMcpHub()
+  private async validateToolExists(
+    task: Task,
+    serverName: string,
+    toolName: string,
+    pushToolResult: (content: string) => void,
+  ): Promise<{
+    isValid: boolean;
+    availableTools?: string[];
+    resolvedToolName?: string;
+  }> {
+    try {
+      // Get the MCP hub to access server information
+      const provider = task.providerRef.deref();
+      const mcpHub = provider?.getMcpHub();
 
-			if (!mcpHub) {
-				// If we can't get the MCP hub, we can't validate, so proceed with caution
-				return { isValid: true }
-			}
+      if (!mcpHub) {
+        // If we can't get the MCP hub, we can't validate, so proceed with caution
+        return { isValid: true };
+      }
 
-			// Get all servers to find the specific one
-			const servers = mcpHub.getAllServers()
-			const server = servers.find((s) => s.name === serverName)
+      // Get all servers to find the specific one
+      const servers = mcpHub.getAllServers();
+      const server = servers.find((s) => s.name === serverName);
 
-			if (!server) {
-				// Fail fast when server is unknown
-				const availableServersArray = servers.map((s) => s.name)
-				const availableServers =
-					availableServersArray.length > 0 ? availableServersArray.join(", ") : "No servers available"
+      if (!server) {
+        // Fail fast when server is unknown
+        const availableServersArray = servers.map((s) => s.name);
+        const availableServers =
+          availableServersArray.length > 0
+            ? availableServersArray.join(", ")
+            : "No servers available";
 
-				task.consecutiveMistakeCount++
-				task.recordToolError("use_mcp_tool")
-				await task.say("error", t("mcp:errors.serverNotFound", { serverName, availableServers }))
-				task.didToolFailInCurrentTurn = true
+        task.consecutiveMistakeCount++;
+        task.recordToolError("use_mcp_tool");
+        await task.say(
+          "error",
+          t("mcp:errors.serverNotFound", { serverName, availableServers }),
+        );
+        task.didToolFailInCurrentTurn = true;
 
-				pushToolResult(formatResponse.unknownMcpServerError(serverName, availableServersArray))
-				return { isValid: false, availableTools: [] }
-			}
+        pushToolResult(
+          formatResponse.unknownMcpServerError(
+            serverName,
+            availableServersArray,
+          ),
+        );
+        return { isValid: false, availableTools: [] };
+      }
 
-			// Check if the server has tools defined
-			if (!server.tools || server.tools.length === 0) {
-				// No tools available on this server
-				task.consecutiveMistakeCount++
-				task.recordToolError("use_mcp_tool")
-				await task.say(
-					"error",
-					t("mcp:errors.toolNotFound", {
-						toolName,
-						serverName,
-						availableTools: "No tools available",
-					}),
-				)
-				task.didToolFailInCurrentTurn = true
+      // Check if the server has tools defined
+      if (!server.tools || server.tools.length === 0) {
+        // No tools available on this server
+        task.consecutiveMistakeCount++;
+        task.recordToolError("use_mcp_tool");
+        await task.say(
+          "error",
+          t("mcp:errors.toolNotFound", {
+            toolName,
+            serverName,
+            availableTools: "No tools available",
+          }),
+        );
+        task.didToolFailInCurrentTurn = true;
 
-				pushToolResult(formatResponse.unknownMcpToolError(serverName, toolName, []))
-				return { isValid: false, availableTools: [] }
-			}
+        pushToolResult(
+          formatResponse.unknownMcpToolError(serverName, toolName, []),
+        );
+        return { isValid: false, availableTools: [] };
+      }
 
-			// Check if the requested tool exists (using fuzzy matching to handle model mangling of hyphens)
-			const tool = server.tools.find((t) => toolNamesMatch(t.name, toolName))
+      // Check if the requested tool exists (using fuzzy matching to handle model mangling of hyphens)
+      const tool = server.tools.find((t) => toolNamesMatch(t.name, toolName));
 
-			if (!tool) {
-				// Tool not found - provide list of available tools
-				const availableToolNames = server.tools.map((tool) => tool.name)
+      if (!tool) {
+        // Tool not found - provide list of available tools
+        const availableToolNames = server.tools.map((tool) => tool.name);
 
-				task.consecutiveMistakeCount++
-				task.recordToolError("use_mcp_tool")
-				await task.say(
-					"error",
-					t("mcp:errors.toolNotFound", {
-						toolName,
-						serverName,
-						availableTools: availableToolNames.join(", "),
-					}),
-				)
-				task.didToolFailInCurrentTurn = true
+        task.consecutiveMistakeCount++;
+        task.recordToolError("use_mcp_tool");
+        await task.say(
+          "error",
+          t("mcp:errors.toolNotFound", {
+            toolName,
+            serverName,
+            availableTools: availableToolNames.join(", "),
+          }),
+        );
+        task.didToolFailInCurrentTurn = true;
 
-				pushToolResult(formatResponse.unknownMcpToolError(serverName, toolName, availableToolNames))
-				return { isValid: false, availableTools: availableToolNames }
-			}
+        pushToolResult(
+          formatResponse.unknownMcpToolError(
+            serverName,
+            toolName,
+            availableToolNames,
+          ),
+        );
+        return { isValid: false, availableTools: availableToolNames };
+      }
 
-			// Check if the tool is disabled (enabledForPrompt is false)
-			if (tool.enabledForPrompt === false) {
-				// Tool is disabled - only show enabled tools
-				const enabledTools = server.tools.filter((t) => t.enabledForPrompt !== false)
-				const enabledToolNames = enabledTools.map((t) => t.name)
+      // Check if the tool is disabled (enabledForPrompt is false)
+      if (tool.enabledForPrompt === false) {
+        // Tool is disabled - only show enabled tools
+        const enabledTools = server.tools.filter(
+          (t) => t.enabledForPrompt !== false,
+        );
+        const enabledToolNames = enabledTools.map((t) => t.name);
 
-				task.consecutiveMistakeCount++
-				task.recordToolError("use_mcp_tool")
-				await task.say(
-					"error",
-					t("mcp:errors.toolDisabled", {
-						toolName,
-						serverName,
-						availableTools:
-							enabledToolNames.length > 0 ? enabledToolNames.join(", ") : "No enabled tools available",
-					}),
-				)
-				task.didToolFailInCurrentTurn = true
+        task.consecutiveMistakeCount++;
+        task.recordToolError("use_mcp_tool");
+        await task.say(
+          "error",
+          t("mcp:errors.toolDisabled", {
+            toolName,
+            serverName,
+            availableTools:
+              enabledToolNames.length > 0
+                ? enabledToolNames.join(", ")
+                : "No enabled tools available",
+          }),
+        );
+        task.didToolFailInCurrentTurn = true;
 
-				pushToolResult(formatResponse.unknownMcpToolError(serverName, toolName, enabledToolNames))
-				return { isValid: false, availableTools: enabledToolNames }
-			}
+        pushToolResult(
+          formatResponse.unknownMcpToolError(
+            serverName,
+            toolName,
+            enabledToolNames,
+          ),
+        );
+        return { isValid: false, availableTools: enabledToolNames };
+      }
 
-			// Tool exists and is enabled - return the original tool name for use with the MCP server
-			return { isValid: true, availableTools: server.tools.map((t) => t.name), resolvedToolName: tool.name }
-		} catch (error) {
-			// If there's an error during validation, log it but don't block the tool execution
-			// The actual tool call might still fail with a proper error
-			console.error("Error validating MCP tool existence:", error)
-			return { isValid: true }
-		}
-	}
+      // Tool exists and is enabled - return the original tool name for use with the MCP server
+      return {
+        isValid: true,
+        availableTools: server.tools.map((t) => t.name),
+        resolvedToolName: tool.name,
+      };
+    } catch (error) {
+      // If there's an error during validation, log it but don't block the tool execution
+      // The actual tool call might still fail with a proper error
+      console.error("Error validating MCP tool existence:", error);
+      return { isValid: true };
+    }
+  }
 
-	private async sendExecutionStatus(task: Task, status: McpExecutionStatus): Promise<void> {
-		const clineProvider = await task.providerRef.deref()
-		clineProvider?.postMessageToWebview({
-			type: "mcpExecutionStatus",
-			text: JSON.stringify(status),
-		})
-	}
+  private async sendExecutionStatus(
+    task: Task,
+    status: McpExecutionStatus,
+  ): Promise<void> {
+    const clineProvider = await task.providerRef.deref();
+    clineProvider?.postMessageToWebview({
+      type: "mcpExecutionStatus",
+      text: JSON.stringify(status),
+    });
+  }
 
-	private processToolContent(toolResult: any): { text: string; images: string[] } {
-		if (!toolResult?.content || toolResult.content.length === 0) {
-			return { text: "", images: [] }
-		}
+  private processToolContent(toolResult: any): {
+    text: string;
+    images: string[];
+  } {
+    if (!toolResult?.content || toolResult.content.length === 0) {
+      return { text: "", images: [] };
+    }
 
-		const images: string[] = []
+    const images: string[] = [];
 
-		const textContent = toolResult.content
-			.map((item: any) => {
-				if (item.type === "text") {
-					return item.text
-				}
-				if (item.type === "resource") {
-					const { blob: _, ...rest } = item.resource
-					return JSON.stringify(rest, null, 2)
-				}
-				if (item.type === "image") {
-					// Handle image content (MCP image content has mimeType and data properties)
-					if (item.mimeType && item.data) {
-						if (item.data.startsWith("data:")) {
-							images.push(item.data)
-						} else {
-							images.push(`data:${item.mimeType};base64,${item.data}`)
-						}
-					}
-					return ""
-				}
-				if (item.type === "resource_link") {
-					const link = item as McpResourceLink
-					return `[${link.name}](${link.uri})${link.description ? ` — ${link.description}` : ""}`
-				}
-				return ""
-			})
-			.filter(Boolean)
-			.join("\n\n")
+    const textContent = toolResult.content
+      .map((item: any) => {
+        if (item.type === "text") {
+          return item.text;
+        }
+        if (item.type === "resource") {
+          const { blob: _, ...rest } = item.resource;
+          return JSON.stringify(rest, null, 2);
+        }
+        if (item.type === "image") {
+          // Handle image content (MCP image content has mimeType and data properties)
+          if (item.mimeType && item.data) {
+            if (item.data.startsWith("data:")) {
+              images.push(item.data);
+            } else {
+              images.push(`data:${item.mimeType};base64,${item.data}`);
+            }
+          }
+          return "";
+        }
+        if (item.type === "resource_link") {
+          const link = item as McpResourceLink;
+          return `[${link.name}](${link.uri})${link.description ? ` — ${link.description}` : ""}`;
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n\n");
 
-		return { text: textContent, images }
-	}
+    return { text: textContent, images };
+  }
 
-	private async executeToolAndProcessResult(
-		task: Task,
-		serverName: string,
-		toolName: string,
-		parsedArguments: Record<string, unknown> | undefined,
-		executionId: string,
-		pushToolResult: (content: string | Array<any>) => void,
-	): Promise<void> {
-		await task.say("mcp_server_request_started")
+  private async executeToolAndProcessResult(
+    task: Task,
+    serverName: string,
+    toolName: string,
+    parsedArguments: Record<string, unknown> | undefined,
+    executionId: string,
+    pushToolResult: (content: string | Array<any>) => void,
+  ): Promise<void> {
+    await task.say("mcp_server_request_started");
 
-		// Send started status
-		await this.sendExecutionStatus(task, {
-			executionId,
-			status: "started",
-			serverName,
-			toolName,
-		})
+    // Send started status
+    await this.sendExecutionStatus(task, {
+      executionId,
+      status: "started",
+      serverName,
+      toolName,
+    });
 
-		const toolResult = await task.providerRef.deref()?.getMcpHub()?.callTool(serverName, toolName, parsedArguments)
+    const toolResult = await task.providerRef
+      .deref()
+      ?.getMcpHub()
+      ?.callTool(serverName, toolName, parsedArguments);
 
-		let toolResultPretty = "(No response)"
-		let images: string[] = []
+    let toolResultPretty = "(No response)";
+    let images: string[] = [];
 
-		if (toolResult) {
-			const { text: outputText, images: extractedImages } = this.processToolContent(toolResult)
-			images = extractedImages
+    if (toolResult) {
+      const { text: outputText, images: extractedImages } =
+        this.processToolContent(toolResult);
+      images = extractedImages;
 
-			if (outputText || images.length > 0) {
-				await this.sendExecutionStatus(task, {
-					executionId,
-					status: "output",
-					response: outputText || (images.length > 0 ? `[${images.length} image(s)]` : ""),
-				})
+      if (outputText || images.length > 0) {
+        await this.sendExecutionStatus(task, {
+          executionId,
+          status: "output",
+          response:
+            outputText ||
+            (images.length > 0 ? `[${images.length} image(s)]` : ""),
+        });
 
-				toolResultPretty =
-					(toolResult.isError ? "Error:\n" : "") +
-					(outputText || (images.length > 0 ? `[${images.length} image(s) received]` : ""))
-			}
+        toolResultPretty =
+          (toolResult.isError ? "Error:\n" : "") +
+          (outputText ||
+            (images.length > 0 ? `[${images.length} image(s) received]` : ""));
+      }
 
-			// Send completion status
-			await this.sendExecutionStatus(task, {
-				executionId,
-				status: toolResult.isError ? "error" : "completed",
-				response: toolResultPretty,
-				error: toolResult.isError ? "Error executing MCP tool" : undefined,
-			})
-		} else {
-			// Send error status if no result
-			await this.sendExecutionStatus(task, {
-				executionId,
-				status: "error",
-				error: "No response from MCP server",
-			})
-		}
+      // Send completion status
+      await this.sendExecutionStatus(task, {
+        executionId,
+        status: toolResult.isError ? "error" : "completed",
+        response: toolResultPretty,
+        error: toolResult.isError ? "Error executing MCP tool" : undefined,
+      });
+    } else {
+      // Send error status if no result
+      await this.sendExecutionStatus(task, {
+        executionId,
+        status: "error",
+        error: "No response from MCP server",
+      });
+    }
 
-		// A document the cluster built comes back as a link, because an MCP
-		// result is text. Fetching it here is the difference between "here is a
-		// URL" and a file in the workspace — see services/ai-cluster/documentDelivery.
-		toolResultPretty = await this.deliverDocuments(task, toolResultPretty)
+    // A document the cluster built comes back as a link, because an MCP
+    // result is text. Fetching it here is the difference between "here is a
+    // URL" and a file in the workspace — see services/ai-cluster/documentDelivery.
+    toolResultPretty = await this.deliverDocuments(task, toolResultPretty);
 
-		await task.say("mcp_server_response", toolResultPretty, images)
-		pushToolResult(formatResponse.toolResult(toolResultPretty, images))
-	}
+    await task.say("mcp_server_response", toolResultPretty, images);
+    pushToolResult(formatResponse.toolResult(toolResultPretty, images));
+  }
 
-	private async deliverDocuments(task: Task, text: string): Promise<string> {
-		if (!documentLinks(text).length) {
-			return text
-		}
-		try {
-			const provider = task.providerRef.deref()
-			const credentials = documentCredentials((await provider?.getState())?.apiConfiguration)
-			const { saved, failed } = await saveDocuments(text, task.cwd, { apiKey: credentials?.apiKey })
-			for (const document of saved) {
-				await task.fileContextTracker.trackFileContext(document.relativePath, "roo_edited")
-			}
-			const note = deliveryNote(saved, failed)
-			return note ? [text, note].join("\n\n") : text
-		} catch (error) {
-			// Never turn a document that was built into a tool call that failed.
-			task.providerRef
-				.deref()
-				?.log(
-					`AI Cluster: could not save a document automatically: ${error instanceof Error ? error.message : String(error)}`,
-				)
-			return text
-		}
-	}
+  private async deliverDocuments(task: Task, text: string): Promise<string> {
+    if (!documentLinks(text).length) {
+      return text;
+    }
+    try {
+      const provider = task.providerRef.deref();
+      const credentials = documentCredentials(
+        (await provider?.getState())?.apiConfiguration,
+      );
+      if (!credentials) {
+        // No cluster configured means no cluster these links can be from.
+        return text;
+      }
+      const { saved, failed } = await saveDocuments(text, task.cwd, {
+        apiKey: credentials.apiKey,
+        allowedOrigin: aiClusterOrigin(credentials.baseUrl),
+      });
+      for (const document of saved) {
+        await task.fileContextTracker.trackFileContext(
+          document.relativePath,
+          "roo_edited",
+        );
+      }
+      const note = deliveryNote(saved, failed);
+      return note ? [text, note].join("\n\n") : text;
+    } catch (error) {
+      // Never turn a document that was built into a tool call that failed.
+      task.providerRef
+        .deref()
+        ?.log(
+          `AI Cluster: could not save a document automatically: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      return text;
+    }
+  }
 }
 
-export const useMcpToolTool = new UseMcpToolTool()
+export const useMcpToolTool = new UseMcpToolTool();

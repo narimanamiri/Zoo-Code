@@ -1,8 +1,8 @@
-import * as fs from "fs/promises"
+import * as fs from "fs/promises";
 
-import { safeWriteJson } from "../../utils/safeWriteJson"
+import { safeWriteJson } from "../../utils/safeWriteJson";
 
-import { aiClusterMcpUrl } from "./client"
+import { aiClusterMcpUrl } from "./client";
 
 /**
  * Register the cluster's own MCP server so its tools are real tools.
@@ -19,60 +19,83 @@ import { aiClusterMcpUrl } from "./client"
  * MCP list, disableable, and removable by hand.
  */
 
-export const AI_CLUSTER_MCP_SERVER_NAME = "ai-cluster"
+export const AI_CLUSTER_MCP_SERVER_NAME = "ai-cluster";
+
+/**
+ * Seconds a tool call may take before the hub gives up on it.
+ *
+ * The hub's default is 60. generate_document plans a document, writes it a
+ * section at a time and typesets it — three to six minutes on a warm model,
+ * longer cold — so under the default every document the cluster built was
+ * reported as a failed tool call while the file sat finished on the node.
+ * Set only when the entry has no timeout of its own; a value the user chose
+ * stays theirs.
+ */
+export const AI_CLUSTER_MCP_TIMEOUT_SECONDS = 1800;
 
 type McpSettings = {
-	mcpServers?: Record<string, Record<string, unknown>>
-}
+  mcpServers?: Record<string, Record<string, unknown>>;
+};
 
 const readSettings = async (settingsPath: string): Promise<McpSettings> => {
-	try {
-		const raw = await fs.readFile(settingsPath, "utf-8")
-		const parsed = JSON.parse(raw)
-		return parsed && typeof parsed === "object" ? (parsed as McpSettings) : {}
-	} catch {
-		// Missing or unparsable: the hub rewrites a broken file anyway, and
-		// refusing to register because of it would be a worse failure.
-		return {}
-	}
-}
+  try {
+    const raw = await fs.readFile(settingsPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as McpSettings) : {};
+  } catch {
+    // Missing or unparsable: the hub rewrites a broken file anyway, and
+    // refusing to register because of it would be a worse failure.
+    return {};
+  }
+};
 
 /**
  * Add or update the cluster entry. Returns true when the file changed — the
  * hub watches it, so writing an identical file would reconnect every server
  * for nothing.
  */
-export async function registerClusterMcpServer(settingsPath: string, baseUrl: string): Promise<boolean> {
-	const settings = await readSettings(settingsPath)
-	const servers = settings.mcpServers ?? {}
-	const existing = servers[AI_CLUSTER_MCP_SERVER_NAME]
+export async function registerClusterMcpServer(
+  settingsPath: string,
+  baseUrl: string,
+): Promise<boolean> {
+  const settings = await readSettings(settingsPath);
+  const servers = settings.mcpServers ?? {};
+  const existing = servers[AI_CLUSTER_MCP_SERVER_NAME];
 
-	const entry = {
-		// Preserve whatever the user changed by hand (disabled, alwaysAllow,
-		// timeouts): this rewrites the address, not their preferences.
-		...(existing ?? {}),
-		type: "streamable-http",
-		url: aiClusterMcpUrl(baseUrl),
-	}
+  const entry: Record<string, unknown> = {
+    // Preserve whatever the user changed by hand (disabled, alwaysAllow,
+    // timeouts): this rewrites the address, not their preferences.
+    ...(existing ?? {}),
+    type: "streamable-http",
+    url: aiClusterMcpUrl(baseUrl),
+  };
+  if (typeof entry.timeout !== "number") {
+    entry.timeout = AI_CLUSTER_MCP_TIMEOUT_SECONDS;
+  }
 
-	if (existing && JSON.stringify(existing) === JSON.stringify(entry)) {
-		return false
-	}
+  if (existing && JSON.stringify(existing) === JSON.stringify(entry)) {
+    return false;
+  }
 
-	await safeWriteJson(settingsPath, { ...settings, mcpServers: { ...servers, [AI_CLUSTER_MCP_SERVER_NAME]: entry } })
-	return true
+  await safeWriteJson(settingsPath, {
+    ...settings,
+    mcpServers: { ...servers, [AI_CLUSTER_MCP_SERVER_NAME]: entry },
+  });
+  return true;
 }
 
 /** Remove the entry again — used when the user turns the integration off. */
-export async function unregisterClusterMcpServer(settingsPath: string): Promise<boolean> {
-	const settings = await readSettings(settingsPath)
-	const servers = settings.mcpServers ?? {}
+export async function unregisterClusterMcpServer(
+  settingsPath: string,
+): Promise<boolean> {
+  const settings = await readSettings(settingsPath);
+  const servers = settings.mcpServers ?? {};
 
-	if (!(AI_CLUSTER_MCP_SERVER_NAME in servers)) {
-		return false
-	}
+  if (!(AI_CLUSTER_MCP_SERVER_NAME in servers)) {
+    return false;
+  }
 
-	const { [AI_CLUSTER_MCP_SERVER_NAME]: _removed, ...rest } = servers
-	await safeWriteJson(settingsPath, { ...settings, mcpServers: rest })
-	return true
+  const { [AI_CLUSTER_MCP_SERVER_NAME]: _removed, ...rest } = servers;
+  await safeWriteJson(settingsPath, { ...settings, mcpServers: rest });
+  return true;
 }

@@ -72,8 +72,11 @@ async function main() {
 					copyPaths(
 						[
 							["../README.md", "README.md"],
-							["../CHANGELOG.md", "CHANGELOG.md"],
-							["../LICENSE", "LICENSE"],
+							// Both were dropped from the repository root in the rebrand; a
+							// package with no release notes is still a package, so their
+							// absence must not fail the bundle.
+							["../CHANGELOG.md", "CHANGELOG.md", { optional: true }],
+							["../LICENSE", "LICENSE", { optional: true }],
 							["../.env", ".env", { optional: true }],
 							["node_modules/vscode-material-icons/generated", "assets/vscode-material-icons"],
 							["../webview-ui/audio", "webview-ui/audio"],

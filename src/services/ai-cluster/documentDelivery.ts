@@ -1,7 +1,7 @@
-import fs from "fs/promises"
-import path from "path"
+import fs from "fs/promises";
+import path from "path";
 
-import axios from "axios"
+import axios from "axios";
 
 /**
  * Turn a link to a document the cluster built into the document itself.
@@ -19,39 +19,56 @@ import axios from "axios"
  */
 
 /** Documents built by this cluster, wherever they are mentioned. */
-const FILE_URL = /https?:\/\/[^\s"'<>)\]]+\/v1\/files\/[0-9a-f]+\/[^\s"'<>)\]]+/g
+const FILE_URL =
+  /https?:\/\/[^\s"'<>)\]]+\/v1\/files\/[0-9a-f]+\/[^\s"'<>)\]]+/g;
 
 /** Where saved documents go when the caller has no better idea. */
-export const DEFAULT_DOCUMENT_DIRNAME = "documents"
+export const DEFAULT_DOCUMENT_DIRNAME = "documents";
 
-export type SavedDocument = { url: string; name: string; relativePath: string; bytes: number }
+export type SavedDocument = {
+  url: string;
+  name: string;
+  relativePath: string;
+  bytes: number;
+};
+
+/** `http://host:18080/v1/files/…` → `http://host:18080`, or undefined for a URL that will not parse. */
+const originOf = (url: string): string | undefined => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+};
 
 const filenameFrom = (url: string): string => {
-	const last = url.split("/").pop() || "document"
-	let decoded = last
-	try {
-		decoded = decodeURIComponent(last)
-	} catch {
-		// A name that is not valid percent-encoding is still a usable name.
-	}
-	// The link is quoted in prose, so it collects trailing punctuation; and a
-	// name from a URL must never be able to climb out of the directory.
-	return path.basename(decoded.replace(/[.,;:)\]]+$/, "")) || "document"
-}
+  const last = url.split("/").pop() || "document";
+  let decoded = last;
+  try {
+    decoded = decodeURIComponent(last);
+  } catch {
+    // A name that is not valid percent-encoding is still a usable name.
+  }
+  // The link is quoted in prose, so it collects trailing punctuation; and a
+  // name from a URL must never be able to climb out of the directory.
+  return path.basename(decoded.replace(/[.,;:)\]]+$/, "")) || "document";
+};
 
 /** Every distinct cluster document link in a piece of text, in order. */
-export function documentLinks(text: string): Array<{ url: string; name: string }> {
-	const seen = new Set<string>()
-	const out: Array<{ url: string; name: string }> = []
-	for (const match of String(text ?? "").match(FILE_URL) ?? []) {
-		const url = match.replace(/[.,;:)\]]+$/, "")
-		if (seen.has(url)) {
-			continue
-		}
-		seen.add(url)
-		out.push({ url, name: filenameFrom(url) })
-	}
-	return out
+export function documentLinks(
+  text: string,
+): Array<{ url: string; name: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ url: string; name: string }> = [];
+  for (const match of String(text ?? "").match(FILE_URL) ?? []) {
+    const url = match.replace(/[.,;:)\]]+$/, "");
+    if (seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    out.push({ url, name: filenameFrom(url) });
+  }
+  return out;
 }
 
 /**
@@ -62,73 +79,105 @@ export function documentLinks(text: string): Array<{ url: string; name: string }
  * `report-2.docx`.
  */
 export async function saveDocuments(
-	text: string,
-	cwd: string,
-	options: { directory?: string; apiKey?: string } = {},
-): Promise<{ saved: SavedDocument[]; failed: Array<{ url: string; error: string }> }> {
-	const links = documentLinks(text)
-	const saved: SavedDocument[] = []
-	const failed: Array<{ url: string; error: string }> = []
-	if (!links.length) {
-		return { saved, failed }
-	}
+  text: string,
+  cwd: string,
+  options: { directory?: string; apiKey?: string; allowedOrigin?: string } = {},
+): Promise<{
+  saved: SavedDocument[];
+  failed: Array<{ url: string; error: string }>;
+}> {
+  const links = documentLinks(text);
+  const saved: SavedDocument[] = [];
+  const failed: Array<{ url: string; error: string }> = [];
+  if (!links.length) {
+    return { saved, failed };
+  }
 
-	const directory = options.directory ?? DEFAULT_DOCUMENT_DIRNAME
-	const targetDir = path.resolve(cwd, directory)
+  const directory = options.directory ?? DEFAULT_DOCUMENT_DIRNAME;
+  const targetDir = path.resolve(cwd, directory);
+  // The links are read out of a tool result, which any MCP server the user
+  // has installed can write. Without this, one that mentions a URL shaped
+  // like ours gets the extension to fetch it and drop the bytes into the
+  // workspace. Given an origin, only the cluster's own links are followed.
+  const allowed = options.allowedOrigin
+    ? originOf(options.allowedOrigin)
+    : undefined;
 
-	for (const link of links) {
-		try {
-			const response = await axios.get(link.url, {
-				responseType: "arraybuffer",
-				timeout: 120_000,
-				headers: options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : undefined,
-				maxContentLength: 128 * 1024 * 1024,
-			})
-			const buffer = Buffer.from(response.data)
-			if (!buffer.length) {
-				failed.push({ url: link.url, error: "the server returned an empty file" })
-				continue
-			}
+  for (const link of links) {
+    if (allowed && originOf(link.url) !== allowed) {
+      failed.push({
+        url: link.url,
+        error: "not on the configured cluster, so it was not fetched",
+      });
+      continue;
+    }
+    try {
+      const response = await axios.get(link.url, {
+        responseType: "arraybuffer",
+        timeout: 120_000,
+        headers: options.apiKey
+          ? { Authorization: `Bearer ${options.apiKey}` }
+          : undefined,
+        maxContentLength: 128 * 1024 * 1024,
+      });
+      const buffer = Buffer.from(response.data);
+      if (!buffer.length) {
+        failed.push({
+          url: link.url,
+          error: "the server returned an empty file",
+        });
+        continue;
+      }
 
-			await fs.mkdir(targetDir, { recursive: true })
-			const extension = path.extname(link.name)
-			const stem = extension ? link.name.slice(0, -extension.length) : link.name
-			let candidate = link.name
-			for (let n = 2; n < 100; n++) {
-				try {
-					await fs.access(path.join(targetDir, candidate))
-					candidate = `${stem}-${n}${extension}`
-				} catch {
-					break
-				}
-			}
+      await fs.mkdir(targetDir, { recursive: true });
+      const extension = path.extname(link.name);
+      const stem = extension
+        ? link.name.slice(0, -extension.length)
+        : link.name;
+      let candidate = link.name;
+      for (let n = 2; n < 100; n++) {
+        try {
+          await fs.access(path.join(targetDir, candidate));
+          candidate = `${stem}-${n}${extension}`;
+        } catch {
+          break;
+        }
+      }
 
-			await fs.writeFile(path.join(targetDir, candidate), buffer)
-			saved.push({
-				url: link.url,
-				name: candidate,
-				relativePath: path.join(directory, candidate).split(path.sep).join("/"),
-				bytes: buffer.length,
-			})
-		} catch (error) {
-			failed.push({ url: link.url, error: error instanceof Error ? error.message : String(error) })
-		}
-	}
+      await fs.writeFile(path.join(targetDir, candidate), buffer);
+      saved.push({
+        url: link.url,
+        name: candidate,
+        relativePath: path.join(directory, candidate).split(path.sep).join("/"),
+        bytes: buffer.length,
+      });
+    } catch (error) {
+      failed.push({
+        url: link.url,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
-	return { saved, failed }
+  return { saved, failed };
 }
 
 /** What to add to the tool result, so the model reports a path and not a link. */
-export function deliveryNote(saved: SavedDocument[], failed: Array<{ url: string; error: string }>): string {
-	const lines: string[] = []
-	for (const document of saved) {
-		lines.push(
-			`Saved to the workspace: ${document.relativePath} (${Math.round(document.bytes / 1024)} KB). ` +
-				`Tell the user this path — the file is already downloaded, and the link does not need to be opened.`,
-		)
-	}
-	for (const failure of failed) {
-		lines.push(`Could not download ${failure.url} automatically (${failure.error}); the link still works.`)
-	}
-	return lines.join("\n")
+export function deliveryNote(
+  saved: SavedDocument[],
+  failed: Array<{ url: string; error: string }>,
+): string {
+  const lines: string[] = [];
+  for (const document of saved) {
+    lines.push(
+      `Saved to the workspace: ${document.relativePath} (${Math.round(document.bytes / 1024)} KB). ` +
+        `Tell the user this path — the file is already downloaded, and the link does not need to be opened.`,
+    );
+  }
+  for (const failure of failed) {
+    lines.push(
+      `Could not download ${failure.url} automatically (${failure.error}); the link still works.`,
+    );
+  }
+  return lines.join("\n");
 }
